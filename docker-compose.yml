@@ -1,0 +1,22 @@
+services:
+  web:
+    build: .
+    image: german-flashcards
+    container_name: flashcards
+    ports:
+      - "8000:8000"
+    # All config (Google OAuth, session secret, admin emails, Anthropic key,
+    # token settings) is read from .env. The file must exist; for guest-only mode
+    # with no login/AI, an empty .env is fine. See ".env copy.example".
+    env_file:
+      - .env
+    environment:
+      DB_PATH: /data/flashcards.db
+    # Bind mount: the SQLite database lives at ./data/flashcards.db on the host,
+    # so it survives container rebuilds AND is a real file you can back up.
+    # It caches AI-generated sentences that cost tokens — never delete it.
+    # First run: move your existing DB in with
+    #   mkdir -p data && cp flashcards.db data/flashcards.db
+    volumes:
+      - ./data:/data
+    restart: unless-stopped

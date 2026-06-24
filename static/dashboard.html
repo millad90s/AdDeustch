@@ -1,0 +1,364 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Admin Dashboard · German Flashcards</title>
+<link rel="icon" href="/favicon.svg" type="image/svg+xml">
+<style>
+  :root {
+    --bg: #0f172a; --panel: #1e293b; --panel-2: #334155; --text: #e2e8f0;
+    --muted: #94a3b8; --accent: #38bdf8; --good: #22c55e; --hard: #f59e0b;
+    --bad: #ef4444; --border: #334155;
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; font-family: system-ui, -apple-system, Segoe UI, Roboto, sans-serif;
+    background: var(--bg); color: var(--text); }
+  header { display: flex; align-items: center; gap: 12px; padding: 16px 22px; border-bottom: 1px solid var(--border); position: sticky; top: 0; background: var(--bg); }
+  header img { width: 30px; height: 30px; }
+  header h1 { font-size: 1.1rem; margin: 0; flex: 1; }
+  header a { color: var(--accent); text-decoration: none; font-size: .85rem; }
+  .wrap { max-width: 1100px; margin: 0 auto; padding: 20px 22px 60px; }
+  h2 { font-size: 1rem; margin: 28px 0 12px; color: var(--muted); text-transform: uppercase; letter-spacing: .04em; }
+  .cards { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 12px; }
+  .card { background: var(--panel); border: 1px solid var(--border); border-radius: 12px; padding: 14px 16px; }
+  .card .n { font-size: 1.7rem; font-weight: 800; }
+  .card .l { font-size: .76rem; color: var(--muted); margin-top: 2px; }
+  .card.good .n { color: var(--good); } .card.warn .n { color: var(--hard); } .card.bad .n { color: var(--bad); }
+  table { width: 100%; border-collapse: collapse; font-size: .82rem; background: var(--panel); border: 1px solid var(--border); border-radius: 12px; overflow: hidden; }
+  th, td { text-align: left; padding: 9px 11px; border-bottom: 1px solid var(--border); white-space: nowrap; }
+  th { color: var(--muted); font-weight: 600; font-size: .72rem; text-transform: uppercase; letter-spacing: .03em; }
+  tr:last-child td { border-bottom: none; }
+  .scroll { overflow-x: auto; }
+  .pill { padding: 2px 8px; border-radius: 999px; font-size: .72rem; font-weight: 700; }
+  .pill.generated { background: rgba(34,197,94,.18); color: var(--good); }
+  .pill.cached { background: rgba(56,189,248,.18); color: var(--accent); }
+  .pill.error { background: rgba(239,68,68,.18); color: var(--bad); }
+  .tok { font-weight: 700; color: var(--accent); }
+  .muted { color: var(--muted); }
+  .gate { text-align: center; padding: 80px 20px; color: var(--muted); }
+  .bar { height: 6px; background: var(--bg); border-radius: 999px; overflow: hidden; margin-top: 5px; min-width: 80px; }
+  .bar > div { height: 100%; background: var(--good); }
+  .chips { display: flex; flex-wrap: wrap; gap: 8px; }
+  .chip { background: var(--panel); border: 1px solid var(--border); border-radius: 999px; padding: 5px 12px; font-size: .82rem; }
+  .chip b { color: var(--accent); }
+  .nowrap { white-space: nowrap; }
+  .gr-amt { width: 56px; background: var(--bg); color: var(--text); border: 1px solid var(--border); border-radius: 6px; padding: 4px 6px; font-size: .8rem; }
+  .gr-btn { background: var(--accent); color: #06121f; border: none; border-radius: 6px; padding: 5px 10px; cursor: pointer; font-weight: 700; font-size: .78rem; margin-left: 4px; }
+  .gr-btn:disabled { opacity: .5; cursor: default; }
+  .pager { display: flex; align-items: center; gap: 12px; margin-top: 12px; }
+  .pager button { background: var(--panel-2); color: var(--text); border: 1px solid var(--border); border-radius: 8px; padding: 6px 12px; cursor: pointer; font-size: .82rem; }
+  .pager button:disabled { opacity: .4; cursor: default; }
+  .pkg-form { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin-top: 12px; }
+  .pkg-form input[type=number], .pkg-form input[type=text], .pkg-form input:not([type]) { background: var(--bg); color: var(--text); border: 1px solid var(--border); border-radius: 8px; padding: 7px 10px; font-size: .85rem; }
+  .pkg-form input#pk-tokens, .pkg-form input#pk-price { width: 150px; }
+  .pkg-form .ck { display: flex; align-items: center; gap: 5px; font-size: .82rem; color: var(--muted); }
+  #pkg-save { background: var(--accent); color: #06121f; border: none; border-radius: 8px; padding: 8px 14px; cursor: pointer; font-weight: 700; font-size: .82rem; }
+  #pkg-cancel { background: var(--panel-2); color: var(--text); border: 1px solid var(--border); border-radius: 8px; padding: 8px 12px; cursor: pointer; font-size: .82rem; }
+  .pk-edit, .pk-del { background: var(--panel-2); color: var(--text); border: 1px solid var(--border); border-radius: 6px; padding: 4px 9px; cursor: pointer; font-size: .76rem; margin-left: 4px; }
+  .pk-del { color: var(--bad); border-color: var(--bad); }
+  .set-card { background: var(--panel); border: 1px solid var(--border); border-radius: 12px; padding: 16px; max-width: 560px; }
+  .set-active { margin-bottom: 12px; font-size: .9rem; }
+  .set-group { border-top: 1px solid var(--border); margin-top: 12px; padding-top: 12px; }
+  .set-title { font-size: .8rem; color: var(--accent); font-weight: 700; margin-bottom: 8px; }
+  .set-row { display: flex; flex-direction: column; gap: 4px; margin-bottom: 10px; }
+  .set-row label { font-size: .76rem; color: var(--muted); }
+  .set-row input, .set-row select { background: var(--bg); color: var(--text); border: 1px solid var(--border); border-radius: 8px; padding: 8px 10px; font-size: .85rem; }
+  #set-save { background: var(--accent); color: #06121f; border: none; border-radius: 8px; padding: 9px 16px; cursor: pointer; font-weight: 700; font-size: .84rem; margin-top: 6px; }
+</style>
+</head>
+<body>
+<header>
+  <img src="/favicon.svg" alt="">
+  <h1>Admin Dashboard</h1>
+  <a href="/">← Back to app</a>
+</header>
+<div class="wrap" id="wrap"><div class="gate">Loading…</div></div>
+
+<script>
+const $ = (s) => document.querySelector(s);
+const esc = (s) => (s ?? '').toString().replace(/[&<>"]/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[m]));
+const fmtTime = (t) => t ? esc(t.replace('T', ' ').slice(0, 16)) : '';
+function uaShort(ua) {
+  if (!ua) return '—';
+  const os = /Windows/.test(ua) ? 'Windows' : /iPhone|iPad/.test(ua) ? 'iOS' : /Android/.test(ua) ? 'Android'
+    : /Mac OS X/.test(ua) ? 'macOS' : /Linux/.test(ua) ? 'Linux' : '';
+  const br = /Edg\//.test(ua) ? 'Edge' : /OPR\//.test(ua) ? 'Opera' : /Chrome\//.test(ua) ? 'Chrome'
+    : /Firefox\//.test(ua) ? 'Firefox' : /Safari\//.test(ua) ? 'Safari' : 'Browser';
+  return esc([br, os].filter(Boolean).join(' · '));
+}
+
+async function load() {
+  let d;
+  try {
+    const r = await fetch('/api/admin/dashboard');
+    if (r.status === 401 || r.status === 403) { $('#wrap').innerHTML = '<div class="gate">🔒 Admins only. <a href="/" style="color:var(--accent)">Sign in as an admin</a>.</div>'; return; }
+    d = await r.json();
+    try { const sr = await fetch('/api/admin/settings'); SETTINGS = sr.ok ? await sr.json() : null; } catch { SETTINGS = null; }
+  } catch { $('#wrap').innerHTML = '<div class="gate">Failed to load dashboard.</div>'; return; }
+  userPage = 0;
+  render(d);
+}
+
+function card(n, label, cls = '') { return `<div class="card ${cls}"><div class="n">${n}</div><div class="l">${label}</div></div>`; }
+
+let SETTINGS = null;
+let DATA = null;
+let userPage = 0;
+const PAGE = 20;
+
+function render(d) {
+  DATA = d;
+  const s = d.summary;
+  const cards = [
+    card(s.users, 'Users'),
+    card(s.tokens_remaining, 'Tokens remaining', 'good'),
+    card(s.tokens_spent, 'Tokens spent (charges)'),
+    card(s.generations, 'AI generations', 'good'),
+    card(s.cached_hits, 'Cached hits'),
+    card(s.errors, 'Errors', s.errors ? 'bad' : ''),
+    card('€' + ((s.revenue_cents || 0) / 100).toFixed(2), 'Revenue', 'good'),
+    card(s.purchases || 0, 'Purchases'),
+    card(s.words, 'Words'),
+    card(s.ai_sentences + '/' + s.sentences, 'AI / total sentences'),
+    card(s.readings, 'Readings'),
+  ].join('');
+
+  const careers = (d.careers || []).length
+    ? d.careers.map(c => `<span class="chip">${esc(c.career)} <b>${c.users}</b></span>`).join('')
+    : '<span class="muted">No careers set yet.</span>';
+
+  const logRow = (l) => `<tr>
+    <td class="muted">${fmtTime(l.created_at)}</td>
+    <td>${esc(l.email || '—')}</td>
+    <td><span class="pill ${esc(l.status)}">${esc(l.status)}</span></td>
+    <td>${esc(l.word || (l.word_id ? '#' + l.word_id : '—'))}</td>
+    <td>${esc(l.career || '—')}</td>
+    <td class="muted">${esc(l.detail || '')}</td>
+  </tr>`;
+  const logs = d.recent_logs.map(logRow).join('') || '<tr><td colspan="6" class="muted">No API calls logged yet.</td></tr>';
+
+  const errs = d.error_logs.map(l => `<tr>
+    <td class="muted">${fmtTime(l.created_at)}</td>
+    <td>${esc(l.email || '—')}</td>
+    <td>${esc(l.career || '—')}</td>
+    <td style="color:var(--bad)">${esc(l.detail || '')}</td>
+  </tr>`).join('') || '<tr><td colspan="4" class="muted">No errors 🎉</td></tr>';
+
+  $('#wrap').innerHTML = `
+    <h2>Overview</h2>
+    <div class="cards">${cards}</div>
+
+    <h2>AI provider &amp; API keys</h2>
+    <div id="ai-settings"></div>
+
+    <h2>Careers in use (${(d.careers || []).length})</h2>
+    <div class="chips">${careers}</div>
+
+    <h2>Token packages (PayPal)</h2>
+    <div class="scroll"><table>
+      <thead><tr><th>Tokens</th><th>Price</th><th>Status</th><th>Order</th><th></th></tr></thead>
+      <tbody id="pkg-body"></tbody>
+    </table></div>
+    <div class="pkg-form">
+      <input id="pk-tokens" type="number" min="1" placeholder="Tokens (e.g. 200)">
+      <input id="pk-price" type="number" min="0.5" step="0.01" placeholder="Price (e.g. 2.99)">
+      <input id="pk-cur" value="EUR" maxlength="3" style="width:60px">
+      <input id="pk-pos" type="number" value="0" title="Order" style="width:70px">
+      <label class="ck"><input type="checkbox" id="pk-active" checked> Active</label>
+      <button id="pkg-save">Add package</button>
+      <button id="pkg-cancel" style="display:none">Cancel</button>
+      <span id="pkg-status" class="muted"></span>
+    </div>
+
+    <h2>Recent purchases (${(d.recent_purchases || []).length})</h2>
+    <div class="scroll"><table>
+      <thead><tr><th>When</th><th>User</th><th>Tokens</th><th>Amount</th><th>Provider ref</th></tr></thead>
+      <tbody>${(d.recent_purchases || []).map(p => `<tr>
+        <td class="muted">${fmtTime(p.created_at)}</td><td>${esc(p.email || '—')}</td>
+        <td>+${p.tokens}</td><td class="tok">${(p.price_cents/100).toFixed(2)} ${esc(p.currency)}</td>
+        <td class="muted">${esc(p.provider_ref || '')}</td></tr>`).join('')
+        || '<tr><td colspan="5" class="muted">No purchases yet.</td></tr>'}</tbody>
+    </table></div>
+
+    <h2>Users &amp; progress</h2>
+    <div class="scroll"><table>
+      <thead><tr><th>User</th><th>Career</th><th>Level</th><th>Tokens</th><th>Words units</th><th>Readings</th><th>Learned</th><th>AI charges</th><th>Last seen</th><th>Joined</th><th>Add tokens</th></tr></thead>
+      <tbody id="users-body"></tbody>
+    </table></div>
+    <div class="pager" id="users-pager"></div>
+
+    <h2>Recent API calls (${d.recent_logs.length})</h2>
+    <div class="scroll"><table>
+      <thead><tr><th>When</th><th>User</th><th>Status</th><th>Word</th><th>Career</th><th>Detail</th></tr></thead>
+      <tbody>${logs}</tbody>
+    </table></div>
+
+    <h2>Error log (${d.error_logs.length})</h2>
+    <div class="scroll"><table>
+      <thead><tr><th>When</th><th>User</th><th>Career</th><th>Error</th></tr></thead>
+      <tbody>${errs}</tbody>
+    </table></div>
+
+    <h2>Access log — request headers (${(d.access_logs || []).length})</h2>
+    <div class="scroll"><table>
+      <thead><tr><th>When</th><th>User</th><th>Event</th><th>IP</th><th>Browser / device</th><th>Language</th><th>Referer</th></tr></thead>
+      <tbody>${(d.access_logs || []).map(a => `<tr>
+        <td class="muted">${fmtTime(a.created_at)}</td>
+        <td>${esc(a.email || '—')}</td>
+        <td><span class="pill cached">${esc(a.event || '')}</span></td>
+        <td>${esc(a.ip || '—')}</td>
+        <td title="${esc(a.user_agent || '')}">${uaShort(a.user_agent)}</td>
+        <td class="muted">${esc((a.language || '—').split(',')[0])}</td>
+        <td class="muted">${esc(a.referer || '—')}</td>
+      </tr>`).join('') || '<tr><td colspan="7" class="muted">No access records yet.</td></tr>'}</tbody>
+    </table></div>`;
+  renderUsers();
+  renderPackages();
+  renderSettings();
+}
+
+function keyField(id, info) {
+  const status = info.set ? `<span class="pill generated">set · ${esc(info.source)}</span>` : '<span class="pill error">not set</span>';
+  return `<div class="set-row">
+    <label>API key ${status}</label>
+    <input id="${id}" type="password" placeholder="${info.set ? 'Leave blank to keep current key' : 'Paste API key'}" autocomplete="off">
+  </div>`;
+}
+function renderSettings() {
+  const el = $('#ai-settings'); if (!el) return;
+  if (!SETTINGS) { el.innerHTML = '<div class="muted">Could not load settings.</div>'; return; }
+  const s = SETTINGS;
+  const opts = s.providers.map(p => `<option value="${p}"${p === s.ai_provider ? ' selected' : ''}>${p}</option>`).join('');
+  el.innerHTML = `
+    <div class="set-card">
+      <div class="set-active">Active: <b>${esc(s.active_provider)}</b>
+        ${s.active_available ? '<span class="pill generated">ready</span>' : '<span class="pill error">no key</span>'}</div>
+      <div class="set-row"><label>Provider</label><select id="set-provider">${opts}</select></div>
+
+      <div class="set-group"><div class="set-title">Claude (Anthropic)</div>
+        <div class="set-row"><label>Model</label><input id="set-anthropic-model" value="${esc(s.anthropic_model)}"></div>
+        ${keyField('set-anthropic-key', s.anthropic_key)}
+      </div>
+      <div class="set-group"><div class="set-title">Gemini (Google)</div>
+        <div class="set-row"><label>Model</label><input id="set-gemini-model" value="${esc(s.gemini_model)}" placeholder="gemini-2.5-flash or gemini-2.5-flash-lite"></div>
+        ${keyField('set-gemini-key', s.gemini_key)}
+      </div>
+
+      <button id="set-save">Save settings</button>
+      <span id="set-status" class="muted"></span>
+    </div>`;
+  $('#set-save').onclick = saveSettings;
+}
+async function saveSettings() {
+  const body = {
+    ai_provider: $('#set-provider').value,
+    anthropic_model: $('#set-anthropic-model').value,
+    gemini_model: $('#set-gemini-model').value,
+    anthropic_api_key: $('#set-anthropic-key').value,
+    gemini_api_key: $('#set-gemini-key').value,
+  };
+  $('#set-status').textContent = 'Saving…';
+  const r = await fetch('/api/admin/settings', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
+  if (!r.ok) { $('#set-status').textContent = 'Failed to save.'; return; }
+  try { const sr = await fetch('/api/admin/settings'); SETTINGS = sr.ok ? await sr.json() : SETTINGS; } catch {}
+  reload();
+}
+
+let pkgEditId = null;
+function renderPackages() {
+  const pkgs = DATA.packages || [];
+  $('#pkg-body').innerHTML = pkgs.map(p => `<tr>
+      <td>🪙 ${p.tokens}</td>
+      <td class="tok">${(p.price_cents/100).toFixed(2)} ${esc(p.currency)}</td>
+      <td>${p.active ? '<span class="pill generated">active</span>' : '<span class="muted">hidden</span>'}</td>
+      <td class="muted">${p.position}</td>
+      <td class="nowrap">
+        <button class="pk-edit" data-id="${p.id}">Edit</button>
+        <button class="pk-del" data-id="${p.id}">Delete</button>
+      </td></tr>`).join('') || '<tr><td colspan="5" class="muted">No packages yet — add one below.</td></tr>';
+
+  $('#pkg-save').onclick = savePackage;
+  $('#pkg-cancel').onclick = () => resetPkgForm();
+  document.querySelectorAll('.pk-edit').forEach(b => b.onclick = () => {
+    const p = pkgs.find(x => x.id == b.dataset.id); if (!p) return;
+    pkgEditId = p.id;
+    $('#pk-tokens').value = p.tokens; $('#pk-price').value = (p.price_cents/100).toFixed(2);
+    $('#pk-cur').value = p.currency; $('#pk-pos').value = p.position; $('#pk-active').checked = p.active;
+    $('#pkg-save').textContent = 'Save changes'; $('#pkg-cancel').style.display = '';
+    $('#pk-tokens').focus();
+  });
+  document.querySelectorAll('.pk-del').forEach(b => b.onclick = async () => {
+    if (!confirm('Delete this package?')) return;
+    await fetch('/api/packages/' + b.dataset.id, { method: 'DELETE' });
+    reload();
+  });
+}
+function resetPkgForm() {
+  pkgEditId = null;
+  $('#pk-tokens').value = ''; $('#pk-price').value = ''; $('#pk-cur').value = 'EUR';
+  $('#pk-pos').value = 0; $('#pk-active').checked = true;
+  $('#pkg-save').textContent = 'Add package'; $('#pkg-cancel').style.display = 'none';
+  $('#pkg-status').textContent = '';
+}
+async function savePackage() {
+  const tokens = parseInt($('#pk-tokens').value, 10), price = parseFloat($('#pk-price').value);
+  if (!tokens || tokens < 1 || !price || price < 0.5) { $('#pkg-status').textContent = '⚠️ Enter tokens and a price ≥ 0.50.'; return; }
+  const body = { tokens, price, currency: ($('#pk-cur').value || 'EUR').toUpperCase(),
+    active: $('#pk-active').checked, position: parseInt($('#pk-pos').value, 10) || 0 };
+  if (pkgEditId) body.id = pkgEditId;
+  const r = await fetch('/api/packages', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
+  if (!r.ok) { $('#pkg-status').textContent = 'Failed to save.'; return; }
+  resetPkgForm(); reload();
+}
+async function reload() { const r = await fetch('/api/admin/dashboard'); render(await r.json()); }
+
+function renderUsers() {
+  const all = DATA.users;
+  const pages = Math.max(1, Math.ceil(all.length / PAGE));
+  if (userPage >= pages) userPage = pages - 1;
+  const slice = all.slice(userPage * PAGE, userPage * PAGE + PAGE);
+  $('#users-body').innerHTML = slice.map(u => `<tr>
+      <td>${esc(u.name || '')}<div class="muted">${esc(u.email || '')}</div></td>
+      <td>${esc(u.career || '—')}</td>
+      <td>${esc(u.level || '—')}</td>
+      <td class="tok">🪙 ${u.tokens}</td>
+      <td>${u.units_passed}<span class="muted">/${u.total_units}</span></td>
+      <td>${u.readings_unlocked}<span class="muted">/${u.total_readings}</span></td>
+      <td>${u.learned}${u.mistakes ? ` · <span style="color:var(--hard)">${u.mistakes}⚑</span>` : ''}</td>
+      <td>${u.charges}</td>
+      <td class="muted">${u.last_seen ? fmtTime(u.last_seen) + (u.last_ip ? `<div class="muted">${esc(u.last_ip)}</div>` : '') : '—'}</td>
+      <td class="muted">${fmtTime(u.created_at)}</td>
+      <td class="nowrap"><input class="gr-amt" type="number" min="1" value="50" data-email="${esc(u.email)}">
+        <button class="gr-btn" data-email="${esc(u.email)}">Add</button></td>
+    </tr>`).join('') || '<tr><td colspan="11" class="muted">No users yet.</td></tr>';
+
+  $('#users-pager').innerHTML = pages > 1
+    ? `<button id="prev" ${userPage === 0 ? 'disabled' : ''}>‹ Prev</button>
+       <span class="muted">Page ${userPage + 1} of ${pages} · ${all.length} users</span>
+       <button id="next" ${userPage >= pages - 1 ? 'disabled' : ''}>Next ›</button>`
+    : `<span class="muted">${all.length} user${all.length === 1 ? '' : 's'}</span>`;
+  const prev = $('#prev'), next = $('#next');
+  if (prev) prev.onclick = () => { userPage--; renderUsers(); };
+  if (next) next.onclick = () => { userPage++; renderUsers(); };
+  document.querySelectorAll('.gr-btn').forEach(b => b.onclick = () => grant(b.dataset.email, b));
+}
+
+async function grant(email, btn) {
+  const amt = parseInt(btn.previousElementSibling.value, 10);
+  if (!amt || amt < 1) { alert('Enter a token amount.'); return; }
+  btn.disabled = true;
+  try {
+    const r = await fetch('/api/tokens/grant', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ email, amount: amt }) });
+    if (!r.ok) { alert('Failed to add tokens.'); btn.disabled = false; return; }
+    const res = await r.json();
+    const u = DATA.users.find(x => x.email === email);
+    if (u) u.tokens = res.tokens;
+    DATA.summary.tokens_remaining += amt;
+    render(DATA);   // refresh totals + rows
+  } catch { alert('Network error.'); btn.disabled = false; }
+}
+load();
+</script>
+</body>
+</html>

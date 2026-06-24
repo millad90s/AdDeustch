@@ -1,0 +1,11 @@
+.venv/
+__pycache__/
+*.pyc
+flashcards.db
+data/
+.env
+.git/
+.gitignore
+README.md
+*.md
+flashcardscopy.db

@@ -1,0 +1,25 @@
+- invite friends link 
+- start token = 5 not working ( limit the starting tokens. ) what happens if there is no more token !
+    * watch Ads or Pay !?
+
+
+
+
+more features:
+* find list of exact words for the each level.
+* play video or audio that include a specific word in it in news ! 
+* Payment
+* users can have online video meet with others who are in same level, users can send request to others ( needs token ofcourse ) 
+* News ( coming soon ) 
+* leader Board. 
+* add more info from a word as below:
+  Lemma(s) : übrig
+  POS      : Adjektiv
+  Articles : None
+  URL      : https://www.dwds.de/wb/%C3%BCbrig
+* reading content should be generated based on the related two units.
+* add audio for readings via ElevenLab :) ! 
+
+Changes:
+* set 15 words for each unit. 
+* use Gemini 2.5 Flash API / Gemini 2.5 Flash-Lite  # inprogress 

@@ -1,0 +1,1354 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>German Flashcards</title>
+<link rel="icon" type="image/svg+xml" href="/favicon.svg">
+<style>
+  :root {
+    --bg: #0f172a; --panel: #1e293b; --panel-2: #334155;
+    --text: #e2e8f0; --muted: #94a3b8; --accent: #38bdf8;
+    --good: #22c55e; --easy: #14b8a6; --hard: #f59e0b; --again: #ef4444;
+    --border: #334155;
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; font-family: system-ui, -apple-system, Segoe UI, Roboto, sans-serif;
+    background: var(--bg); color: var(--text); min-height: 100vh; display: flex; flex-direction: column; align-items: center; }
+  header { width: 100%; max-width: 640px; padding: 16px; }
+  .topbar { display: flex; justify-content: space-between; align-items: center; gap: 8px; margin-bottom: 12px; }
+  h1 { font-size: 1.15rem; margin: 0; display: flex; align-items: center; gap: 8px; }
+  h1 .logo { width: 26px; height: 26px; }
+  nav { display: flex; gap: 8px; }
+  nav button { flex: 1; background: var(--panel); color: var(--muted); border: 1px solid var(--border);
+    padding: 8px; border-radius: 10px; cursor: pointer; font-size: .9rem; }
+  nav button.active { background: var(--panel-2); color: var(--text); border-color: var(--accent); }
+  nav a.grammar-link { flex: 1; display: flex; align-items: center; justify-content: center; text-decoration: none;
+    background: var(--panel); color: var(--muted); border: 1px solid var(--border); padding: 8px; border-radius: 10px; font-size: .9rem; }
+  nav a.grammar-link:hover { color: var(--accent); border-color: var(--accent); }
+
+  .auth { display: flex; align-items: center; gap: 8px; font-size: .82rem; }
+  .auth img { width: 28px; height: 28px; border-radius: 50%; }
+  .auth .who { color: var(--muted); max-width: 130px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .tokens { background: var(--panel); border: 1px solid var(--border); border-radius: 999px; padding: 3px 10px; font-size: .78rem; font-weight: 700; color: var(--accent); white-space: nowrap; }
+  .tokens.empty { color: var(--hard); border-color: var(--hard); }
+  .pkg-card { display: flex; align-items: center; justify-content: space-between; gap: 12px; border: 1px solid var(--border); border-radius: 12px; padding: 12px 14px; margin-top: 10px; }
+  .pkg-card b { font-size: 1.05rem; }
+  .pkg-pay { min-width: 150px; }
+  .auth button { background: var(--panel); color: var(--text); border: 1px solid var(--border); border-radius: 8px; padding: 6px 10px; cursor: pointer; font-size: .8rem; }
+  .sync-note { font-size: .72rem; color: var(--muted); text-align: right; margin-top: -6px; }
+
+  .reminder { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; background: var(--panel);
+    border: 1px solid var(--border); border-radius: 10px; padding: 10px 12px; margin-bottom: 16px; font-size: .85rem; }
+  .reminder label { display: flex; align-items: center; gap: 6px; cursor: pointer; color: var(--text); }
+  .reminder input[type=time] { background: var(--bg); color: var(--text); border: 1px solid var(--border); border-radius: 6px; padding: 4px 6px; font-family: inherit; }
+  .reminder .rem-status { color: var(--muted); margin-left: auto; }
+
+  /* modal (auth + onboarding) */
+  .modal { display: none; position: fixed; inset: 0; background: rgba(0,0,0,.6); z-index: 50; align-items: center; justify-content: center; padding: 16px; }
+  .modal-card { background: var(--panel); border: 1px solid var(--border); border-radius: 14px; width: 100%; max-width: 380px; padding: 22px; position: relative; }
+  .modal-card h2 { margin: 0 0 6px; font-size: 1.1rem; }
+  .modal-card .sub { color: var(--muted); font-size: .82rem; margin-bottom: 6px; }
+  .modal-card .close { position: absolute; top: 12px; right: 14px; background: none; border: none; color: var(--muted); font-size: 1.2rem; cursor: pointer; }
+  .modal-card label { display: block; font-size: .78rem; color: var(--muted); margin: 12px 0 4px; }
+  .modal-card input, .modal-card select { width: 100%; background: var(--bg); color: var(--text); border: 1px solid var(--border); border-radius: 8px; padding: 10px; font-size: .95rem; font-family: inherit; }
+  .modal-card .err { color: var(--again); font-size: .8rem; min-height: 16px; margin-top: 10px; }
+  .modal-card .submit { width: 100%; margin-top: 16px; background: var(--accent); color: #06121f; border: none; border-radius: 10px; padding: 11px; font-weight: 700; cursor: pointer; }
+  .modal-card .switch { text-align: center; font-size: .82rem; color: var(--muted); margin-top: 12px; }
+  .modal-card .switch a { color: var(--accent); }
+  .modal-card .or { text-align: center; color: var(--muted); font-size: .75rem; margin: 14px 0 4px; }
+  .modal-card a.google { display: flex; align-items: center; justify-content: center; gap: 8px; background: #fff; color: #1f2937; text-decoration: none; border-radius: 10px; padding: 10px; font-weight: 600; font-size: .85rem; }
+
+  main { width: 100%; max-width: 640px; padding: 0 16px 40px; flex: 1; }
+  .view { display: none; } .view.active { display: block; }
+  .hidden { display: none !important; }
+
+  /* learn topbar */
+  .learn-top { display: flex; align-items: center; gap: 8px; margin-bottom: 14px; flex-wrap: wrap; }
+  .learn-top .track { font-size: .82rem; color: var(--muted); cursor: pointer; }
+  .learn-top .track b { color: var(--text); }
+  .learn-top .track .track-career { color: var(--accent); }
+  .learn-top .track:hover .track-career { text-decoration: underline; }
+  .learn-top .spacer { flex: 1; }
+  .btn { background: var(--panel); color: var(--text); border: 1px solid var(--border); border-radius: 8px; padding: 6px 10px; cursor: pointer; font-size: .8rem; }
+  .btn.warn { border-color: var(--hard); color: var(--hard); }
+  .progress-bar { height: 6px; background: var(--panel-2); border-radius: 4px; overflow: hidden; margin-bottom: 16px; }
+  .progress-bar > div { height: 100%; background: var(--accent); transition: width .3s; }
+
+  .card { background: var(--panel); border: 1px solid var(--border); border-radius: 16px; padding: 28px 22px; min-height: 200px;
+    display: flex; flex-direction: column; justify-content: center; gap: 18px; text-align: center; position: relative; }
+  .cat-tag { align-self: center; font-size: .72rem; color: var(--accent); text-transform: uppercase; letter-spacing: .06em; }
+  .badge { position: absolute; top: 12px; right: 14px; font-size: .68rem; color: var(--muted); }
+  .sentence { font-size: 1.35rem; line-height: 1.5; }
+  .sentence mark { background: transparent; color: var(--accent); font-weight: 700; }
+  .answer { border-top: 1px dashed var(--border); padding-top: 16px; }
+  .answer .word { font-size: 1.15rem; font-weight: 700; cursor: pointer; display: inline-flex; align-items: center; gap: 6px; }
+  .answer .word .speak-ico { font-size: .9rem; opacity: .7; }
+  .answer .word:hover .speak-ico { opacity: 1; }
+  .speak { background: none; border: none; cursor: pointer; font-size: 1rem; padding: 0 4px; vertical-align: middle; opacity: .65; }
+  .speak:hover { opacity: 1; }
+  .answer .trans { color: var(--muted); margin-top: 8px; font-size: 1.05rem; }
+  .hint { color: var(--muted); font-size: .85rem; }
+  .row-actions { display: flex; gap: 8px; margin-top: 16px; align-items: stretch; }
+  .row-actions .primary { flex: 1; }
+  /* the Previous button reuses .ghost, which is full-width/stacked elsewhere;
+     reset it here so it sits inline and matches the primary button's height */
+  .row-actions .ghost { width: auto; margin-top: 0; padding: 13px 18px; border-radius: 10px; font-size: .95rem; white-space: nowrap; }
+  .primary { background: var(--accent); color: #06121f; border: none; padding: 13px; border-radius: 10px; font-weight: 700; cursor: pointer; font-size: .95rem; }
+  .ghostbtn { background: var(--panel); color: var(--text); border: 1px solid var(--border); padding: 13px 16px; border-radius: 10px; cursor: pointer; font-size: .9rem; }
+
+  /* quiz */
+  .q-prompt { font-size: .9rem; color: var(--muted); margin-bottom: 4px; }
+  .q-word { font-size: 1.5rem; font-weight: 700; margin-bottom: 16px; }
+  .q-word .pos { font-size: .8rem; color: var(--muted); font-weight: 400; }
+  .q-english { font-size: 1.25rem; font-weight: 600; font-style: italic; color: var(--text); margin-bottom: 16px; line-height: 1.4; }
+  .opt { width: 100%; text-align: left; background: var(--panel); color: var(--text); border: 1px solid var(--border);
+    border-radius: 12px; padding: 14px 16px; margin-bottom: 10px; cursor: pointer; font-size: 1rem; line-height: 1.45; }
+  .opt:hover { border-color: var(--accent); }
+  .opt.correct { border-color: var(--good); background: rgba(34,197,94,.12); }
+  .opt.wrong { border-color: var(--again); background: rgba(239,68,68,.12); }
+  .opt:disabled { cursor: default; }
+
+  .result { text-align: center; padding: 24px 12px; }
+  .result .score { font-size: 2.6rem; font-weight: 800; }
+  .result .big { font-size: 2.4rem; margin-bottom: 8px; }
+  .result p { color: var(--muted); }
+  .result .actions { display: flex; gap: 10px; justify-content: center; margin-top: 18px; flex-wrap: wrap; }
+
+  .empty { text-align: center; color: var(--muted); padding: 50px 20px; }
+  .empty .big { font-size: 2.4rem; margin-bottom: 8px; }
+
+  /* add / browse */
+  .note-box { margin-top: 16px; }
+  label.fld { display: block; font-size: .8rem; color: var(--muted); margin: 12px 0 4px; }
+  input.fld, textarea.fld { width: 100%; background: var(--bg); color: var(--text); border: 1px solid var(--border); border-radius: 8px; padding: 10px; font-size: .95rem; font-family: inherit; }
+  textarea.fld { resize: vertical; min-height: 52px; }
+  .primaryw { margin-top: 18px; width: 100%; background: var(--accent); color: #06121f; border: none; padding: 12px; border-radius: 10px; font-weight: 700; cursor: pointer; font-size: .95rem; }
+  .ghost { background: none; color: var(--accent); border: 1px dashed var(--accent); border-radius: 8px; padding: 8px; cursor: pointer; width: 100%; margin-top: 8px; font-size: .85rem; }
+  .toast { text-align: center; color: var(--good); margin-top: 10px; min-height: 18px; font-size: .85rem; }
+  .sent-block { border: 1px solid var(--border); border-radius: 10px; padding: 10px; margin-top: 10px; position: relative; }
+  .sent-block .rm { position: absolute; top: 6px; right: 8px; background: none; border: none; color: var(--again); cursor: pointer; font-size: 1rem; }
+  .word-item { background: var(--panel); border: 1px solid var(--border); border-radius: 10px; padding: 12px; margin-bottom: 10px; }
+  .word-head { display: flex; justify-content: space-between; align-items: center; }
+  .word-head .w { font-weight: 700; }
+  .word-head .meta { font-size: .72rem; color: var(--accent); }
+  .word-head .del { background: none; border: 1px solid var(--again); color: var(--again); border-radius: 6px; padding: 3px 9px; cursor: pointer; font-size: .72rem; }
+  .sent-row { border-top: 1px solid var(--border); padding: 8px 0; display: flex; justify-content: space-between; gap: 8px; }
+  .sent-row .de { font-size: .92rem; } .sent-row .en { color: var(--muted); font-size: .82rem; margin-top: 2px; }
+  .sent-row .x { background: none; border: none; color: var(--again); cursor: pointer; }
+  .filter-row { display: flex; gap: 8px; margin-bottom: 14px; }
+  .filter-row select { flex: 1; background: var(--bg); color: var(--text); border: 1px solid var(--border); border-radius: 8px; padding: 8px; }
+  /* progress / journey map */
+  .prog-head { display: flex; align-items: center; gap: 14px; background: var(--panel); border: 1px solid var(--border); border-radius: 14px; padding: 14px 16px; margin-bottom: 16px; }
+  .prog-avatar { width: 54px; height: 54px; border-radius: 50%; flex: none; background: var(--panel-2); display: flex; align-items: center; justify-content: center; font-size: 1.7rem; overflow: hidden; border: 2px solid var(--accent); }
+  .prog-avatar img { width: 100%; height: 100%; object-fit: cover; }
+  .prog-meta { flex: 1; min-width: 0; }
+  .prog-user { font-size: .8rem; color: var(--muted); } .prog-user b { color: var(--text); font-size: 1.05rem; }
+  .prog-sub { font-size: .8rem; color: var(--muted); margin: 3px 0 7px; }
+  .prog-pct { font-size: 1.5rem; font-weight: 800; color: var(--good); flex: none; }
+  .prog-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(96px, 1fr)); gap: 10px; }
+  .unit { position: relative; border-radius: 12px; padding: 12px 8px; text-align: center; border: 1px solid var(--border); min-height: 78px; display: flex; flex-direction: column; justify-content: center; gap: 4px; }
+  .unit .u-no { font-size: .72rem; font-weight: 700; letter-spacing: .02em; }
+  .unit .u-sub { font-size: .64rem; opacity: .85; line-height: 1.2; }
+  .unit .u-status { font-size: .62rem; font-weight: 700; text-transform: uppercase; letter-spacing: .03em; }
+  .unit.locked { background: var(--panel); color: var(--muted); }
+  .unit.unlocked { background: linear-gradient(160deg, #14532d, #16a34a); color: #eafff1; border-color: #22c55e; }
+  .unit.current { background: linear-gradient(160deg, #15803d, #22c55e); color: #eafff1; border-color: var(--accent); box-shadow: 0 0 0 2px rgba(56,189,248,.45); }
+  .unit .u-badge { position: absolute; top: 6px; right: 7px; font-size: .8rem; }
+  .prog-foot { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; justify-content: space-between; margin-top: 16px; font-size: .8rem; color: var(--muted); }
+  .prog-legend .dot { display: inline-block; width: 11px; height: 11px; border-radius: 3px; vertical-align: middle; }
+  .prog-legend .dot.done { background: #16a34a; } .prog-legend .dot.locked { background: var(--panel-2); }
+  .prog-milestone { background: var(--panel); border: 1px solid var(--border); border-radius: 10px; padding: 7px 12px; color: var(--text); font-weight: 600; }
+  .prog-readings { margin-top: 16px; background: var(--panel); border: 1px solid var(--border); border-radius: 12px; padding: 12px 14px; cursor: pointer; }
+  .prog-readings .pr-top { display: flex; justify-content: space-between; align-items: baseline; font-size: .85rem; margin-bottom: 8px; }
+  .prog-readings .pr-top b { color: var(--text); } .prog-readings .pr-count { color: var(--easy); font-weight: 800; }
+  .prog-readings .pr-bar { height: 8px; border-radius: 999px; background: var(--bg); overflow: hidden; }
+  .prog-readings .pr-fill { height: 100%; background: var(--easy); width: 0%; transition: width .3s; }
+  .prog-readings .pr-next { font-size: .75rem; color: var(--muted); margin-top: 6px; }
+  /* readings */
+  .read-card { display: flex; align-items: center; gap: 12px; border: 1px solid var(--border); border-radius: 12px; padding: 13px 15px; margin-bottom: 10px; }
+  .read-card .r-ico { font-size: 1.3rem; flex: none; }
+  .read-card .r-main { flex: 1; min-width: 0; }
+  .read-card .r-name { font-weight: 700; }
+  .read-card .r-meta { font-size: .76rem; color: var(--muted); margin-top: 2px; }
+  .read-card.unlocked { background: linear-gradient(160deg, #14532d, #16a34a); color: #eafff1; border-color: #22c55e; cursor: pointer; }
+  .read-card.unlocked .r-meta { color: #c9f5d8; }
+  .read-card.locked { background: var(--panel); color: var(--muted); }
+  .read-card .r-del { background: rgba(0,0,0,.25); color: #fff; border: none; border-radius: 6px; padding: 4px 8px; cursor: pointer; font-size: .75rem; }
+  .story { background: var(--panel); border: 1px solid var(--border); border-radius: 12px; padding: 18px 20px; margin-top: 6px; line-height: 1.7; }
+  .story h1, .story h2, .story h3 { color: var(--accent); margin: .6em 0 .3em; }
+  .story p { margin: 0 0 .8em; } .story code { background: var(--bg); padding: 1px 5px; border-radius: 4px; }
+  .story .close-x { float: right; background: var(--panel-2); color: var(--text); border: none; border-radius: 8px; padding: 4px 10px; cursor: pointer; }
+  #app-toast { position: fixed; left: 50%; bottom: 26px; transform: translateX(-50%) translateY(20px); background: var(--panel-2); color: var(--text); border: 1px solid var(--border); border-radius: 10px; padding: 10px 16px; font-size: .85rem; box-shadow: 0 6px 24px rgba(0,0,0,.4); opacity: 0; pointer-events: none; transition: opacity .2s, transform .2s; z-index: 100; max-width: 90vw; }
+  #app-toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+  /* login gate */
+  #gate { display: none; position: fixed; inset: 0; background: var(--bg); z-index: 50; align-items: center; justify-content: center; padding: 20px; }
+  .gate-card { background: var(--panel); border: 1px solid var(--border); border-radius: 16px; padding: 30px 26px; max-width: 360px; width: 100%; text-align: center; }
+  .gate-logo { width: 64px; height: 64px; }
+  .gate-card h1 { font-size: 1.4rem; margin: 12px 0 6px; }
+  .gate-card p { color: var(--muted); font-size: .9rem; margin: 0 0 22px; line-height: 1.5; }
+  .gate-alt { width: 100%; margin-top: 10px; background: none; color: var(--text); border: 1px solid var(--border); border-radius: 10px; padding: 11px; cursor: pointer; font-size: .9rem; }
+  .gate-google { display: block; margin-top: 14px; color: var(--accent); text-decoration: none; font-size: .85rem; }
+  .gate-google:hover { text-decoration: underline; }
+
+  /* ===== redesign ===== */
+  .hamburger { background: none; border: none; cursor: pointer; padding: 6px 6px 6px 0; display: flex; flex-direction: column; gap: 4px; }
+  .hamburger span { display: block; height: 2px; width: 22px; background: var(--text); border-radius: 2px; }
+  .brand { display: flex; align-items: center; gap: 10px; }
+  .brand-icon { background: linear-gradient(135deg, #6366f1, #3b82f6); width: 32px; height: 32px; border-radius: 9px; display: flex; align-items: center; justify-content: center; font-size: 16px; }
+  .brand h1 { font-size: 1.05rem; font-weight: 700; letter-spacing: -.3px; margin: 0; }
+  .user-menu { display: flex; align-items: center; gap: 10px; }
+  .streak-badge { background: var(--panel); border: 1px solid var(--border); border-radius: 20px; padding: 5px 12px; font-size: .82rem; font-weight: 700; color: var(--accent); display: flex; align-items: center; gap: 5px; white-space: nowrap; cursor: pointer; }
+  .streak-badge.empty { color: var(--hard); border-color: var(--hard); }
+  .avatar { width: 32px; height: 32px; border-radius: 50%; background: #3b82f6; color: #fff; display: flex; align-items: center; justify-content: center; font-size: .8rem; font-weight: 700; border: 2px solid var(--panel); overflow: hidden; cursor: pointer; flex: none; }
+  .avatar img { width: 100%; height: 100%; object-fit: cover; }
+  /* segmented nav */
+  .nav-tabs { display: flex; gap: 4px; background: var(--panel); padding: 4px; border-radius: 12px; }
+  .nav-tab { flex: 1; text-align: center; padding: 8px 0; font-size: .82rem; font-weight: 600; color: var(--muted); cursor: pointer; border-radius: 8px; border: none; background: none; text-decoration: none; transition: background .2s, color .2s; }
+  .nav-tab.active { background: var(--bg); color: var(--text); box-shadow: 0 4px 6px -1px rgba(0,0,0,.25); }
+  /* drawer */
+  .drawer-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,.5); z-index: 60; }
+  .drawer-overlay.open { display: block; }
+  .drawer { position: fixed; top: 0; left: 0; height: 100%; width: 280px; max-width: 84vw; background: var(--panel); border-right: 1px solid var(--border); z-index: 61; transform: translateX(-102%); transition: transform .25s ease; display: flex; flex-direction: column; padding: 16px; }
+  .drawer.open { transform: translateX(0); }
+  .drawer-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 14px; }
+  .drawer-close { background: none; border: none; color: var(--muted); font-size: 1.2rem; cursor: pointer; }
+  .drawer-user { background: var(--bg); border: 1px solid var(--border); border-radius: 10px; padding: 10px 12px; font-size: .85rem; margin-bottom: 12px; }
+  .drawer-user .du-email { color: var(--muted); font-size: .76rem; margin-top: 2px; word-break: break-all; }
+  .drawer-nav { display: flex; flex-direction: column; gap: 2px; overflow-y: auto; }
+  .drawer-item { display: block; width: 100%; text-align: left; background: none; border: none; color: var(--text); padding: 11px 12px; border-radius: 9px; cursor: pointer; font-size: .9rem; text-decoration: none; }
+  .drawer-item:hover { background: var(--bg); }
+  .drawer-sep { font-size: .68rem; color: var(--muted); text-transform: uppercase; letter-spacing: .06em; margin: 12px 6px 4px; }
+  /* flashcard + highlight + tags + gradient action */
+  .card { border-radius: 24px; padding: 36px 24px; }
+  .sentence mark { background: rgba(56,189,248,.1); color: var(--accent); font-weight: 700; padding: 2px 6px; border-radius: 6px; }
+  .track-tags { display: inline-flex; gap: 6px; }
+  .tag { font-size: .64rem; font-weight: 700; text-transform: uppercase; letter-spacing: .04em; padding: 3px 8px; border-radius: 6px; }
+  .tag-track { background: rgba(56,189,248,.15); color: var(--accent); }
+  .tag-level { background: rgba(168,85,247,.15); color: #c084fc; }
+  .progress-text { color: var(--muted); font-size: .78rem; } .progress-text b { color: var(--text); }
+  .learn-top .track { flex: 1; display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+  .progress-bar > div { background: linear-gradient(90deg, #38bdf8, #6366f1); }
+  .row-actions .primary { background: linear-gradient(135deg, #3b82f6, #6366f1); color: #fff; border: none; box-shadow: 0 4px 14px rgba(59,130,246,.32); }
+</style>
+</head>
+<body>
+<header>
+  <div class="topbar">
+    <button class="hamburger" id="menu-btn" aria-label="Open menu"><span></span><span></span><span></span></button>
+    <div class="brand"><div class="brand-icon">🇩🇪</div><h1>German</h1></div>
+    <div class="user-menu" id="auth-area"></div>
+  </div>
+  <div class="sync-note" id="sync-note"></div>
+  <nav class="nav-tabs">
+    <button data-view="learn" class="nav-tab active">Words</button>
+    <button data-view="reading" class="nav-tab">Reading</button>
+    <button data-view="progress" class="nav-tab">Progress</button>
+    <a class="nav-tab nav-link" href="/grammar">Grammar</a>
+  </nav>
+</header>
+
+<!-- SLIDE-OUT MENU (hamburger) -->
+<div class="drawer-overlay" id="drawer-overlay"></div>
+<aside class="drawer" id="drawer">
+  <div class="drawer-head">
+    <div class="brand"><div class="brand-icon">🇩🇪</div><h1>German</h1></div>
+    <button class="drawer-close" id="drawer-close">✕</button>
+  </div>
+  <div class="drawer-user" id="drawer-user"></div>
+  <nav class="drawer-nav">
+    <button class="drawer-item" data-act="buy">🪙 Buy tokens</button>
+    <button class="drawer-item" data-act="settings">⚙︎ Career &amp; settings</button>
+    <a class="drawer-item" href="/grammar">📖 Grammar</a>
+    <div class="drawer-sep admin-only" id="nav-add-sep" style="display:none">Admin</div>
+    <button class="drawer-item" data-view="add" id="nav-add" style="display:none">➕ Add words</button>
+    <button class="drawer-item" data-view="browse" id="nav-browse" style="display:none">🗂️ Browse deck</button>
+    <a class="drawer-item" href="/dashboard" id="nav-dashboard" style="display:none">📊 Dashboard</a>
+    <div class="drawer-sep">Account</div>
+    <button class="drawer-item" data-act="logout">↪️ Sign out</button>
+  </nav>
+</aside>
+
+<main>
+  <!-- LEARN -->
+  <section id="learn" class="view active">
+    <!-- Daily reminder UI removed for now (logic retained below, gated by reminder-bar presence) -->
+    <div class="learn-top">
+      <span class="track" id="track-info"></span>
+      <button class="btn warn" id="btn-mistakes" style="display:none"></button>
+    </div>
+    <div class="progress-bar"><div id="track-fill" style="width:0%"></div></div>
+    <div id="learn-area"></div>
+  </section>
+
+  <!-- PROGRESS -->
+  <section id="progress" class="view">
+    <div class="prog-head">
+      <div class="prog-avatar" id="prog-avatar"></div>
+      <div class="prog-meta">
+        <div class="prog-user">USER: <b id="prog-user"></b></div>
+        <div class="prog-sub"><span id="prog-level"></span> · <span id="prog-unlocked"></span></div>
+        <div class="progress-bar"><div id="prog-fill" style="width:0%"></div></div>
+      </div>
+      <div class="prog-pct" id="prog-pct">0%</div>
+    </div>
+    <div class="prog-grid" id="prog-grid"></div>
+    <div class="prog-readings" id="prog-readings" title="Go to readings"></div>
+    <div class="prog-foot">
+      <div class="prog-legend"><span class="dot done"></span> Unlocked &nbsp; <span class="dot locked"></span> Locked</div>
+      <div class="prog-milestone" id="prog-milestone"></div>
+    </div>
+  </section>
+
+  <!-- READING -->
+  <section id="reading" class="view">
+    <div id="reading-admin" class="hidden">
+      <h3 id="reading-admin-title" style="margin:0 0 8px">➕ Post a reading (admin)</h3>
+      <input class="fld" id="r-title" placeholder="Story title">
+      <div style="display:flex;gap:8px">
+        <select class="fld" id="r-level" style="flex:1"></select>
+        <input class="fld" id="r-position" type="number" value="0" title="Order" style="width:90px" placeholder="Order">
+      </div>
+      <textarea class="fld" id="r-body" rows="7" placeholder="The story in German (Markdown supported)…"></textarea>
+      <label class="fld" style="margin-top:10px">🔊 Audio (optional)</label>
+      <input class="fld" id="r-audio-url" placeholder="Direct audio URL — or paste a Google Drive share link">
+      <div style="font-size:.72rem;color:var(--muted);margin:4px 0 6px">…or upload a file (mp3/m4a/ogg/wav, max 25 MB) — the app hosts it for you:</div>
+      <input class="fld" id="r-audio-file" type="file" accept="audio/*">
+      <button class="primaryw" id="r-save">Post reading</button>
+      <button class="ghost" id="r-cancel" style="display:none">Cancel edit</button>
+      <div class="toast" id="r-toast"></div>
+      <hr style="border:none;border-top:1px solid var(--border);margin:18px 0">
+    </div>
+    <div id="reading-list"></div>
+    <div id="reading-view"></div>
+  </section>
+
+  <!-- ADD -->
+  <section id="add" class="view">
+    <label class="fld">Target word (German)</label>
+    <input class="fld" id="f-word" placeholder="die Bereitstellung">
+    <label class="fld">Category</label>
+    <input class="fld" id="f-cat" placeholder="devops" value="devops" list="cat-list">
+    <datalist id="cat-list"></datalist>
+    <label class="fld">CEFR level <span style="color:var(--muted);font-weight:400">— which learners study this word</span></label>
+    <select class="fld" id="f-level"></select>
+    <label class="fld" style="margin-top:18px">Example sentences <span style="color:var(--muted);font-weight:400">— optional; if left empty, AI generates them per career</span></label>
+    <div id="sent-list"></div>
+    <button class="ghost" id="add-sent-row">+ Add another sentence</button>
+    <button class="primaryw" id="f-save">Save word</button>
+    <div class="toast" id="add-toast"></div>
+  </section>
+
+  <!-- BROWSE -->
+  <section id="browse" class="view">
+    <div class="filter-row"><select id="browse-cat"><option value="all">All categories</option></select>
+      <label id="browse-all-wrap" class="hidden" style="margin-left:auto;font-size:.85rem;display:flex;align-items:center;gap:.35rem"><input type="checkbox" id="browse-all"> Show all (admin)</label>
+    </div>
+    <div id="browse-list"></div>
+  </section>
+</main>
+
+<!-- LOGIN GATE (shown until the user signs in) -->
+<div id="gate">
+  <div class="gate-card">
+    <img src="/favicon.svg" alt="" class="gate-logo">
+    <h1>German Flashcards</h1>
+    <p>Learn German vocabulary in context — tailored to your career and level. Sign in to start.</p>
+    <button class="primaryw" id="gate-login">Log in</button>
+    <button class="gate-alt" id="gate-signup">Create an account</button>
+    <a class="gate-google" id="gate-google" href="/auth/google">Continue with Google</a>
+  </div>
+</div>
+
+<!-- ONBOARDING / SETTINGS MODAL -->
+<div class="modal" id="onb-modal">
+  <div class="modal-card">
+    <button class="close" id="onb-close" style="display:none">✕</button>
+    <h2 id="onb-title">Welcome! Let's personalize your learning</h2>
+    <div class="sub">A few quick questions so we show the right words for you.</div>
+    <label>Your role / career track</label>
+    <input id="onb-career" list="career-list" placeholder="e.g. Backend Developer" autocomplete="off">
+    <datalist id="career-list"></datalist>
+    <div class="sub" style="margin-top:4px">Pick one or type your own.</div>
+    <label>Your current German level</label>
+    <select id="onb-level"></select>
+    <label>How many words per lesson?</label>
+    <select id="onb-goal"></select>
+    <button class="submit" id="onb-save">Start learning</button>
+  </div>
+</div>
+
+<!-- LOGIN / SIGNUP MODAL -->
+<div class="modal" id="auth-modal" data-mode="login">
+  <div class="modal-card">
+    <button class="close" id="am-close">✕</button>
+    <h2 id="am-title">Welcome back</h2>
+    <div id="am-name-row" style="display:none">
+      <label>Name (optional)</label>
+      <input id="am-name" type="text" autocomplete="name" placeholder="Milad">
+    </div>
+    <label>Email</label>
+    <input id="am-email" type="email" autocomplete="email" placeholder="you@example.com">
+    <label>Password</label>
+    <input id="am-password" type="password" autocomplete="current-password" placeholder="••••••••">
+    <div class="err" id="am-error"></div>
+    <button class="submit" id="am-submit">Log in</button>
+    <div class="switch" id="am-switch"></div>
+    <div class="or" id="am-or">— or —</div>
+    <a class="google" id="am-google" href="/auth/google">Continue with Google</a>
+  </div>
+</div>
+
+<!-- BUY TOKENS MODAL -->
+<div class="modal" id="buy-modal">
+  <div class="modal-card">
+    <button class="close" id="buy-close">✕</button>
+    <h2>Buy tokens</h2>
+    <p style="color:var(--muted);font-size:.85rem;margin-top:-4px">Tokens are used to generate AI example sentences.</p>
+    <div id="buy-list"></div>
+  </div>
+</div>
+
+<script>
+const $ = (s) => document.querySelector(s);
+let _toastTimer = null;
+function toast(msg) {
+  let t = $('#app-toast');
+  if (!t) { t = document.createElement('div'); t.id = 'app-toast'; document.body.appendChild(t); }
+  t.textContent = msg; t.classList.add('show');
+  clearTimeout(_toastTimer); _toastTimer = setTimeout(() => t.classList.remove('show'), 2600);
+}
+// Speak German text aloud via the Web Speech API (pronunciation help).
+const speechOK = 'speechSynthesis' in window;
+if (speechOK) try { window.speechSynthesis.getVoices(); } catch {}   // warm up the voice list
+function speak(text) {
+  if (!speechOK || !text) return;
+  window.speechSynthesis.cancel();
+  const u = new SpeechSynthesisUtterance(text);
+  u.lang = 'de-DE'; u.rate = 0.92;
+  const v = window.speechSynthesis.getVoices().find(v => (v.lang || '').toLowerCase().startsWith('de'));
+  if (v) u.voice = v;
+  window.speechSynthesis.speak(u);
+}
+const api = (url, opts) => fetch(url, opts).then(r => r.ok ? r.json() : Promise.reject(r));
+const jreq = (url, method, body) => api(url, { method, headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
+function escapeHtml(s) { return (s ?? '').replace(/[&<>"']/g, m => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[m])); }
+function shuffle(a) { a = a.slice(); for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; } return a; }
+
+const PROFILE_KEY = 'fc_profile', LEARN_KEY = 'fc_learn';
+const CAREERS = {
+  devops:  { label: 'DevOps / SRE Engineer', cats: ['devops', 'incident'] },
+  lead:    { label: 'Team Lead / Manager',   cats: ['team-lead', 'meetings'] },
+  general: { label: 'General / All topics',  cats: null },
+};
+const LEVELS = ['A1', 'A2', 'B1', 'B2', 'C1', 'C2'];
+const GOALS = [5, 10, 15, 20];
+const PASS_PCT = 80;
+
+let DECK = [];
+let ME = { google_enabled: false, ai_enabled: false, user: null };
+let NOTES = {};                     // { wordId: private note }
+const isAdmin = () => !!(ME.user && ME.user.is_admin);
+let PROFILE = null;                 // { career, level, daily_goal }
+let LEARN = { learned: [], wrong: {} };
+// learn-view runtime state
+let phase = 'study';                // study | quiz | result | done
+let lesson = [];                    // words in the current lesson
+let studyIdx = 0, studyRevealed = false, studySentence = null;
+let studyShown = {};                // study index -> the sentence shown (kept stable across back/next)
+let quiz = null;                    // { items, idx, correct, mode, answered }
+
+const loggedIn = () => !!ME.user;
+
+// -------- storage (guest = localStorage, logged-in = server) --------
+function loadGuest(key, fallback) { try { return JSON.parse(localStorage.getItem(key)) ?? fallback; } catch { return fallback; } }
+
+async function loadProfile() {
+  if (loggedIn()) { PROFILE = await api('/api/profile'); await mergeGuestProfile(); }
+  else PROFILE = loadGuest(PROFILE_KEY, null);
+}
+async function saveProfile() {
+  if (loggedIn()) await jreq('/api/profile', 'PUT', PROFILE);
+  else localStorage.setItem(PROFILE_KEY, JSON.stringify(PROFILE));
+}
+async function loadLearn() {
+  if (loggedIn()) { LEARN = await api('/api/learning'); }
+  else LEARN = loadGuest(LEARN_KEY, { learned: [], wrong: {} });
+  LEARN.learned = LEARN.learned || []; LEARN.wrong = LEARN.wrong || {};
+}
+async function saveLearn() {
+  if (loggedIn()) await jreq('/api/learning', 'PUT', LEARN);
+  else localStorage.setItem(LEARN_KEY, JSON.stringify(LEARN));
+}
+// On first login, push guest profile/progress to the empty account.
+async function mergeGuestProfile() {
+  const gp = loadGuest(PROFILE_KEY, null), gl = loadGuest(LEARN_KEY, null);
+  if (!PROFILE && gp) { PROFILE = gp; await jreq('/api/profile', 'PUT', PROFILE); }
+  const server = await api('/api/learning');
+  if (gl && !(server.learned || []).length && !Object.keys(server.wrong || {}).length) {
+    await jreq('/api/learning', 'PUT', gl);
+  }
+  const gn = loadGuest('fc_notes', null);  // push guest notes the account doesn't have yet
+  if (gn) {
+    const srvNotes = await api('/api/notes');
+    for (const id in gn) { if (!srvNotes[id]) { try { await jreq('/api/notes/' + id, 'PUT', { note: gn[id] }); } catch {} } }
+    localStorage.removeItem('fc_notes');
+  }
+  localStorage.removeItem(PROFILE_KEY); localStorage.removeItem(LEARN_KEY);
+}
+
+// -------- deck helpers --------
+const careerStr = () => (PROFILE?.career || 'General').trim();
+async function loadDeck() { DECK = await api('/api/words?career=' + encodeURIComponent(careerStr())); }
+function sentencesFor(w) { const c = careerStr(); const cs = w.sentences.filter(s => s.career === c); return cs.length ? cs : w.sentences; }
+// ---- career sentence generation (parallel + non-blocking) ----
+// Each word that needs career sentences gets generated in the background; we
+// only ever *wait* for the specific word about to be shown, so the user starts
+// studying word 1 while words 2..N generate in parallel.
+const genPromises = {};   // word id -> in-flight generation promise
+let outOfTokens = false;  // set once a generation is rejected for lack of tokens
+function generateForWord(w) {
+  return jreq('/api/words/' + w.id + '/generate', 'POST',
+              { career: careerStr(), level: PROFILE?.level || 'B1', n: 3 })
+    .then(res => {
+      if (res.sentences && res.sentences.length) w.sentences = w.sentences.concat(res.sentences);
+      if (!res.cached || (res.sentences && res.sentences.length)) w.has_career_sentences = true;
+      w.paid = true;   // charged once now — don't request this word again
+      if (res.tokens != null && ME.user) { ME.user.tokens = res.tokens; updateTokenChip(); }
+    })
+    .catch(err => {
+      // 402 = out of tokens: stop trying and show generic sentences as fallback.
+      if (err && err.status === 402) { outOfTokens = true; if (ME.user) { ME.user.tokens = 0; updateTokenChip(); } }
+      /* any other failure (e.g. AI returned nothing): leave it unpaid so it can
+         be retried later — but only when actually needed, see startCareerGeneration */
+    });
+}
+function startCareerGeneration(words) {
+  // Only call the API when there's a reason to:
+  //  • word has no career sentences yet  → needs AI generation, OR
+  //  • word is cached but this user hasn't paid → charge-only (no AI call).
+  // Words that are already cached AND paid by this user are skipped entirely, so
+  // refreshing the page does NOT re-hit the (paid) API for them.
+  if (!ME.ai_enabled || outOfTokens) return;
+  for (const w of words) {
+    if (genPromises[w.id]) continue;                 // already requested this session
+    if (w.has_career_sentences && w.paid) continue;  // cached + paid → nothing to do
+    genPromises[w.id] = generateForWord(w);
+  }
+}
+async function ensureWordReady(w) { if (genPromises[w.id]) await genPromises[w.id]; }
+async function ensureAllReady(words) {
+  startCareerGeneration(words);
+  await Promise.all(words.map(w => genPromises[w.id]).filter(Boolean));
+}
+function allCategories() { return [...new Set(DECK.map(w => w.category))]; }
+function careerLabel() { const c = (PROFILE?.career || '').trim(); return CAREERS[c]?.label || c || 'All topics'; }
+function careerCats() {
+  const c = (PROFILE?.career || '').trim();
+  for (const [key, v] of Object.entries(CAREERS)) {
+    if (c === key || c.toLowerCase() === v.label.toLowerCase()) return v.cats ? v.cats : allCategories();
+  }
+  return allCategories(); // a custom (typed) career studies the full deck
+}
+function studyDeck() {
+  // Words are scoped to the learner's CEFR level; career only flavors the sentences.
+  // A word with no sentences yet is still studyable when AI can generate them.
+  const lvl = (PROFILE?.level || 'B1');
+  return DECK.filter(w => w.level === lvl && (w.sentences.length || ME.ai_enabled))
+             .sort((a, b) => a.id - b.id);
+}
+const goal = () => (PROFILE?.daily_goal) || 10;
+const learnedSet = () => new Set((LEARN.learned || []).map(Number));
+function remainingWords() { const done = learnedSet(); return studyDeck().filter(w => !done.has(w.id)); }
+function mistakeWords() { return studyDeck().filter(w => (LEARN.wrong[w.id] || 0) > 0).sort((a, b) => (LEARN.wrong[b.id] || 0) - (LEARN.wrong[a.id] || 0)); }
+function highlight(sentence, word) {
+  const core = word.replace(/^(der|die|das)\s+/i, '').trim().replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  try { return sentence.replace(new RegExp('(' + core + ')', 'i'), '<mark>$1</mark>'); } catch { return sentence; }
+}
+const randSentence = (w) => { const ss = sentencesFor(w); return ss[Math.floor(Math.random() * ss.length)]; };
+
+// ---- private notes (guest = localStorage, logged-in = server) ----
+async function loadNotes() { NOTES = loggedIn() ? await api('/api/notes') : loadGuest('fc_notes', {}); }
+const getNote = (id) => NOTES[id] || '';
+async function saveNote(id, text) {
+  text = (text || '').trim();
+  if (text) NOTES[id] = text; else delete NOTES[id];
+  if (loggedIn()) { try { await jreq('/api/notes/' + id, 'PUT', { note: text }); } catch {} }
+  else localStorage.setItem('fc_notes', JSON.stringify(NOTES));
+}
+
+// -------- onboarding / settings --------
+function fillOnbSelects() {
+  $('#career-list').innerHTML = Object.values(CAREERS).map(v => `<option value="${v.label}">`).join('');
+  $('#onb-level').innerHTML = LEVELS.map(l => `<option value="${l}">${l}</option>`).join('');
+  $('#onb-goal').innerHTML = GOALS.map(g => `<option value="${g}">${g} words</option>`).join('');
+}
+function openOnboarding(edit) {
+  fillOnbSelects();
+  $('#onb-title').textContent = edit ? 'Your learning settings' : "Welcome! Let's personalize your learning";
+  $('#onb-save').textContent = edit ? 'Save' : 'Start learning';
+  $('#onb-close').style.display = edit ? 'block' : 'none';
+  if (PROFILE) { $('#onb-career').value = careerLabel(); $('#onb-level').value = PROFILE.level; $('#onb-goal').value = PROFILE.daily_goal; }
+  else { $('#onb-career').value = ''; $('#onb-level').value = 'B1'; $('#onb-goal').value = 10; }
+  $('#onb-modal').style.display = 'flex';
+}
+$('#onb-close').onclick = () => { $('#onb-modal').style.display = 'none'; };
+$('#onb-save').onclick = async () => {
+  const career = $('#onb-career').value.trim() || 'General / All topics';
+  const prevCareer = careerStr();
+  PROFILE = { career, level: $('#onb-level').value, daily_goal: parseInt($('#onb-goal').value, 10) };
+  await saveProfile();
+  $('#onb-modal').style.display = 'none';
+  if (careerStr() !== prevCareer) await loadDeck();  // re-fetch career-flavored sentences
+  startLesson();
+};
+{ const bs = $('#btn-settings'); if (bs) bs.onclick = () => openOnboarding(true); }  // settings now in the drawer
+
+// -------- learn flow --------
+function renderTopbar() {
+  const deck = studyDeck(), done = learnedSet();
+  const learnedCount = deck.filter(w => done.has(w.id)).length;
+  const pct = deck.length ? Math.round(learnedCount / deck.length * 100) : 0;
+  $('#track-info').innerHTML = `<span class="track-tags"><span class="tag tag-track">${escapeHtml(careerLabel())}</span><span class="tag tag-level">${escapeHtml(PROFILE?.level || 'B1')}</span></span>`
+    + `<span class="progress-text"><b>${learnedCount}</b>/${deck.length} words learned</span>`;
+  $('#track-info').title = 'Change your career, level or daily goal';
+  $('#track-info').onclick = () => openOnboarding(true);
+  $('#track-fill').style.width = pct + '%';
+  const m = mistakeWords().length;
+  const btn = $('#btn-mistakes');
+  btn.style.display = m ? 'inline-block' : 'none';
+  btn.textContent = `⚑ Review mistakes (${m})`;
+}
+// --- resume the in-progress lesson across page refreshes (per user) ---
+const lessonKey = () => 'fc_lesson_' + (ME.user ? ME.user.email : 'guest');
+function saveLessonState() {
+  try {
+    if (phase === 'done' || phase === 'result' || !lesson.length) { localStorage.removeItem(lessonKey()); return; }
+    localStorage.setItem(lessonKey(), JSON.stringify({
+      ids: lesson.map(w => w.id), idx: studyIdx, phase: phase === 'quiz' ? 'quiz' : 'study',
+    }));
+  } catch {}
+}
+function clearLessonState() { try { localStorage.removeItem(lessonKey()); } catch {} }
+function resumeLesson() {
+  // Rebuild a saved lesson (same words, still unlearned) so a refresh continues
+  // where the user left off instead of restarting at word 1.
+  let saved; try { saved = JSON.parse(localStorage.getItem(lessonKey())); } catch { return null; }
+  if (!saved || !Array.isArray(saved.ids) || !saved.ids.length) return null;
+  const byId = Object.fromEntries(DECK.map(w => [w.id, w]));
+  const words = saved.ids.map(id => byId[id]).filter(Boolean);
+  if (words.length !== saved.ids.length) return null;        // deck changed → start fresh
+  const done = learnedSet();
+  if (words.every(w => done.has(w.id))) return null;          // already finished → start fresh
+  return { words, idx: Math.min(saved.idx || 0, words.length - 1), phase: saved.phase || 'study' };
+}
+
+async function startLesson() { await beginLesson(remainingWords().slice(0, goal())); }
+// Run the study→quiz flow over a specific set of words (a lesson or a unit),
+// optionally starting at a given word index (used to resume after a refresh).
+async function beginLesson(words, startIdx = 0) {
+  // Set up a consistent state BEFORE switching views, so the view's first render
+  // never touches a half-initialised lesson (which would blank the page).
+  lesson = words; studyShown = {}; studyRevealed = false; studySentence = null;
+  studyIdx = Math.min(Math.max(0, startIdx), Math.max(0, words.length - 1));
+  phase = lesson.length ? 'study' : 'done';
+  switchView('learn');
+  renderTopbar();
+  if (!lesson.length) { renderLearn(); return; }
+  startCareerGeneration(lesson);   // request ALL words in parallel, in the background
+  const first = lesson[studyIdx];
+  if (genPromises[first.id]) {      // wait only for the word we're about to show
+    if (!first.has_career_sentences)  // only show the spinner when truly generating
+      $('#learn-area').innerHTML = `<div class="empty"><div class="big">✨</div>Preparing your example for <b>${escapeHtml(careerStr())}</b>…</div>`;
+    await ensureWordReady(first);
+  }
+  // If that word still has no usable example (AI off/failed/out of tokens), say so.
+  if (!sentencesFor(first).length) {
+    $('#learn-area').innerHTML = `<div class="empty"><div class="big">⚠️</div>
+      Couldn't prepare examples for <b>${escapeHtml(careerStr())}</b> right now${ME.ai_enabled ? (outOfTokens ? ' — you may be out of tokens.' : '.') : ' — AI generation is off.'}
+      <p style="margin-top:10px"><button class="primary" id="lesson-retry">Try again</button></p></div>`;
+    $('#lesson-retry').onclick = () => { outOfTokens = false; lesson.forEach(w => delete genPromises[w.id]); beginLesson(words, studyIdx); };
+    return;
+  }
+  studySentence = pickStudySentence(studyIdx);
+  saveLessonState();
+  renderLearn();
+}
+// Keep the example shown for a word stable so going Back shows the same sentence.
+function pickStudySentence(idx) {
+  if (!studyShown[idx]) studyShown[idx] = randSentence(lesson[idx]);
+  return studyShown[idx];
+}
+function renderLearn() {
+  renderTopbar();
+  if (phase === 'study') return renderStudy();
+  if (phase === 'quiz') return renderQuiz();
+  if (phase === 'result') return renderResult();
+  if (phase === 'done') return renderDone();
+}
+function renderStudy() {
+  const w = lesson[studyIdx];
+  if (!w || !studySentence) {   // transient (still preparing) — never crash on missing data
+    $('#learn-area').innerHTML = `<div class="empty"><div class="big">✨</div>Loading…</div>`;
+    return;
+  }
+  const last = studyIdx === lesson.length - 1;
+  $('#learn-area').innerHTML = `
+    <div style="font-size:.8rem;color:var(--muted);margin-bottom:8px">Study · word ${studyIdx + 1} of ${lesson.length}</div>
+    <div class="card">
+      <div class="sentence">${highlight(escapeHtml(studySentence.sentence_de), w.word)}</div>
+      ${studyRevealed ? `<div class="answer"><div class="word" id="speak-word" title="Click to hear the word">${escapeHtml(w.word)}${speechOK ? ' <span class="speak-ico">🔊</span>' : ''}</div><div class="trans">${escapeHtml(studySentence.sentence_en)}</div></div>`
+        : `<div class="hint">Tap to reveal the meaning</div>`}
+    </div>
+    <div class="row-actions">
+      ${studyIdx > 0 ? `<button class="ghost" id="study-prev">‹ Previous</button>` : ''}
+      ${studyRevealed
+        ? `<button class="primary" id="study-next">${last ? 'Start quiz ›' : 'Next word ›'}</button>`
+        : `<button class="primary" id="study-reveal">Reveal</button>`}
+    </div>
+    <div class="note-box">
+      <label class="fld">📝 Your private note${loggedIn() ? '' : ' (saved in this browser)'}</label>
+      <textarea class="fld" id="note-input" placeholder="A reminder only you can see — a mnemonic, a tricky meaning…">${escapeHtml(getNote(w.id))}</textarea>
+    </div>`;
+  $('.card').onclick = () => { if (!studyRevealed) { studyRevealed = true; renderStudy(); } };
+  if ($('#speak-word')) $('#speak-word').onclick = (e) => { e.stopPropagation(); speak(w.word); };
+  $('#note-input').addEventListener('change', (e) => saveNote(w.id, e.target.value));
+  if ($('#study-prev')) $('#study-prev').onclick = () => {
+    saveNote(w.id, $('#note-input').value);
+    studyIdx--; studyRevealed = true;          // a word you've already seen — show it revealed
+    studySentence = pickStudySentence(studyIdx); saveLessonState(); renderStudy();
+  };
+  if (studyRevealed) $('#study-next').onclick = async () => {
+    saveNote(w.id, $('#note-input').value);
+    if (last) { await startQuiz(lesson, 'lesson'); }
+    else {
+      studyIdx++; studyRevealed = false;
+      await ensureWordReady(lesson[studyIdx]);   // almost always already done (generated in background)
+      studySentence = pickStudySentence(studyIdx); saveLessonState(); renderStudy();
+    }
+  };
+  else $('#study-reveal').onclick = () => { studyRevealed = true; renderStudy(); };
+}
+
+const hasCareerSentence = (w) => w.sentences.some(s => s.career === careerStr());
+function buildQuestion(word) {
+  // Show the English meaning, ask the learner to pick the matching German sentence.
+  const correctSent = randSentence(word);
+  const correct = correctSent.sentence_de;
+  // Distractors should match the learner's career flavor, not the generic
+  // (devops) seed sentences. Prefer words that already have career sentences;
+  // only fall back to any word if there aren't yet enough career-flavored ones.
+  let pool = DECK.filter(w => w.id !== word.id && hasCareerSentence(w));
+  if (pool.length < 2) pool = DECK.filter(w => w.id !== word.id && w.sentences.length);
+  pool = shuffle(pool);
+  const distract = [];
+  for (const w of pool) { if (distract.length >= 2) break; const s = randSentence(w).sentence_de; if (s !== correct && !distract.includes(s)) distract.push(s); }
+  const options = shuffle([{ text: correct, correct: true }, ...distract.map(t => ({ text: t, correct: false }))]);
+  return { word, prompt: correctSent.sentence_en, options };
+}
+async function startQuiz(words, mode) {
+  // Make sure every word in the quiz has career sentences (covers mistake review,
+  // where generation may not have been kicked off yet). Usually already done.
+  if (ME.ai_enabled && words.some(w => !w.has_career_sentences && !genPromises[w.id])) {
+    $('#learn-area').innerHTML = `<div class="empty"><div class="big">✨</div>Preparing your quiz…</div>`;
+  }
+  await ensureAllReady(words);
+  quiz = { items: words.map(buildQuestion), idx: 0, correct: 0, mode, answered: false };
+  phase = 'quiz';
+  if (mode === 'lesson') saveLessonState();   // resume into the quiz after a refresh
+  renderLearn();
+}
+function renderQuiz() {
+  const q = quiz.items[quiz.idx];
+  const opts = q.options.map((o, i) =>
+    `<button class="opt" data-i="${i}">${escapeHtml(o.text)}</button>`).join('');
+  $('#learn-area').innerHTML = `
+    <div style="font-size:.8rem;color:var(--muted);margin-bottom:10px">
+      ${quiz.mode === 'mistakes' ? 'Mistake review' : 'Quiz'} · question ${quiz.idx + 1} of ${quiz.items.length}
+      · score ${quiz.correct}/${quiz.idx}</div>
+    <div class="q-prompt">Which German sentence means this?</div>
+    <div class="q-english">“${escapeHtml(q.prompt)}”</div>
+    <div id="opts">${opts}</div>
+    <div class="row-actions" id="q-actions"></div>`;
+  $('#opts').querySelectorAll('.opt').forEach(b => b.onclick = () => answerQuiz(parseInt(b.dataset.i, 10)));
+}
+async function answerQuiz(i) {
+  if (quiz.answered) return;
+  quiz.answered = true;
+  const q = quiz.items[quiz.idx];
+  const chosen = q.options[i];
+  const wid = q.word.id;
+  $('#opts').querySelectorAll('.opt').forEach((b, j) => {
+    b.disabled = true;
+    if (q.options[j].correct) b.classList.add('correct');
+    else if (j === i) b.classList.add('wrong');
+  });
+  if (chosen.correct) {
+    quiz.correct++;
+    if (quiz.mode === 'mistakes') { // getting a mistake right reduces its wrong count
+      const c = (LEARN.wrong[wid] || 0) - 1;
+      if (c <= 0) delete LEARN.wrong[wid]; else LEARN.wrong[wid] = c;
+    }
+  } else {
+    LEARN.wrong[wid] = (LEARN.wrong[wid] || 0) + 1;
+  }
+  const last = quiz.idx === quiz.items.length - 1;
+  $('#q-actions').innerHTML = `<button class="primary" id="q-next">${last ? 'See results ›' : 'Next ›'}</button>`;
+  $('#q-next').onclick = () => { if (last) finishQuiz(); else { quiz.idx++; quiz.answered = false; renderQuiz(); } };
+}
+async function finishQuiz() {
+  const total = quiz.items.length;
+  const pct = total ? Math.round(quiz.correct / total * 100) : 0;
+  if (quiz.mode === 'lesson' && pct >= PASS_PCT) {
+    const set = new Set(LEARN.learned.map(Number));
+    lesson.forEach(w => set.add(w.id));
+    LEARN.learned = [...set];
+  }
+  await saveLearn();
+  clearLessonState();   // lesson finished (passed or not) → next visit starts clean
+  phase = 'result'; quiz.finalPct = pct; renderLearn();
+}
+function renderResult() {
+  const pct = quiz.finalPct;
+  const passed = quiz.mode === 'lesson' && pct >= PASS_PCT;
+  const isMistakes = quiz.mode === 'mistakes';
+  let body;
+  if (isMistakes) {
+    body = `<div class="big">✅</div><div class="score">${pct}%</div>
+      <p>Nice practice! Words you still miss stay in your review list.</p>
+      <div class="actions"><button class="primary" id="r-continue">Back to learning</button></div>`;
+  } else if (passed) {
+    body = `<div class="big">🎉</div><div class="score" style="color:var(--good)">${pct}%</div>
+      <p>Passed! You've unlocked the next set of words.</p>
+      <div class="actions"><button class="primary" id="r-continue">Continue ›</button></div>`;
+  } else {
+    body = `<div class="big">💪</div><div class="score" style="color:var(--hard)">${pct}%</div>
+      <p>You need ${PASS_PCT}% to unlock the next set. Let's go through these again.</p>
+      <div class="actions">
+        <button class="primary" id="r-restudy">Study again</button>
+        <button class="ghostbtn" id="r-retry">Retry quiz</button>
+      </div>`;
+  }
+  $('#learn-area').innerHTML = `<div class="result">${body}</div>`;
+  if ($('#r-continue')) $('#r-continue').onclick = () => startLesson();
+  if ($('#r-restudy')) $('#r-restudy').onclick = () => { studyIdx = 0; studyRevealed = false; studySentence = randSentence(lesson[0]); phase = 'study'; renderLearn(); };
+  if ($('#r-retry')) $('#r-retry').onclick = async () => { await startQuiz(lesson, 'lesson'); };
+}
+function renderDone() {
+  const m = mistakeWords().length;
+  const lvl = PROFILE?.level || 'B1';
+  const total = studyDeck().length;
+  if (!total) {
+    $('#learn-area').innerHTML = `
+      <div class="empty">
+        <div class="big">📭</div>
+        No words at level <b>${escapeHtml(lvl)}</b> yet.
+        <p style="margin-top:10px">Pick a different level in <b>⚙︎ Settings</b>${isAdmin() ? ', or add ' + lvl + ' words in the <b>Add</b> tab.' : '.'}</p>
+      </div>`;
+    return;
+  }
+  $('#learn-area').innerHTML = `
+    <div class="empty">
+      <div class="big">🏆</div>
+      You've learned every <b>${escapeHtml(lvl)}</b> word!
+      <p style="margin-top:10px">${m ? `You still have ${m} word(s) to review.` : 'Switch to a higher level in ⚙︎ Settings to keep going.'}</p>
+    </div>`;
+}
+$('#btn-mistakes').onclick = async () => { const m = mistakeWords(); if (m.length) await startQuiz(m, 'mistakes'); };
+
+// -------- auth UI + drawer --------
+function renderAuth() {
+  if (!loggedIn()) return;   // app is login-gated; this only runs when signed in
+  const u = ME.user;
+  const initial = escapeHtml((u.name || u.email || '?').trim().charAt(0).toUpperCase());
+  $('#auth-area').innerHTML = `<span class="streak-badge" id="token-chip" title="Buy more tokens"></span>
+    <div class="avatar" id="avatar-btn" title="Menu">${u.picture ? `<img src="${escapeHtml(u.picture)}" alt="">` : initial}</div>`;
+  updateTokenChip();
+  $('#avatar-btn').onclick = openDrawer;
+  $('#drawer-user').innerHTML = `<b>${escapeHtml(u.name || 'Signed in')}</b>
+    <div class="du-email">${escapeHtml(u.email || '')}</div>`;
+  const note = $('#sync-note'); if (note) note.textContent = '';
+}
+function updateTokenChip() {
+  const chip = $('#token-chip'); if (!chip || !ME.user) return;
+  const t = ME.user.tokens ?? 0;
+  chip.textContent = '🪙 ' + t;
+  chip.classList.toggle('empty', t <= 0);
+  chip.onclick = openBuy;
+}
+// -------- slide-out menu (hamburger) --------
+function openDrawer() { $('#drawer').classList.add('open'); $('#drawer-overlay').classList.add('open'); }
+function closeDrawer() { $('#drawer').classList.remove('open'); $('#drawer-overlay').classList.remove('open'); }
+$('#menu-btn').onclick = openDrawer;
+$('#drawer-close').onclick = closeDrawer;
+$('#drawer-overlay').onclick = closeDrawer;
+document.querySelectorAll('.drawer-item').forEach(el => el.addEventListener('click', () => {
+  const act = el.dataset.act, view = el.dataset.view;
+  closeDrawer();
+  if (view) switchView(view);
+  else if (act === 'buy') openBuy();
+  else if (act === 'settings') openOnboarding(true);
+  else if (act === 'logout') jreq('/auth/logout', 'POST', {}).finally(() => location.reload());
+  // anchor items (Grammar, Dashboard) navigate via their href
+}));
+
+// -------- buy tokens (PayPal) --------
+let paypalSdkReady = null;
+function ensurePaypalSdk(currency) {
+  if (window.paypal) return Promise.resolve();
+  if (paypalSdkReady) return paypalSdkReady;
+  paypalSdkReady = new Promise((resolve, reject) => {
+    const s = document.createElement('script');
+    s.src = `https://www.paypal.com/sdk/js?client-id=${encodeURIComponent(ME.paypal_client_id)}&currency=${encodeURIComponent(currency || 'EUR')}`;
+    s.onload = resolve; s.onerror = reject;
+    document.head.appendChild(s);
+  });
+  return paypalSdkReady;
+}
+async function openBuy() {
+  const modal = $('#buy-modal'); modal.style.display = 'flex';
+  const list = $('#buy-list'); list.innerHTML = '<div class="empty">Loading…</div>';
+  let pkgs = [];
+  try { pkgs = await api('/api/packages'); } catch {}
+  if (!pkgs.length) { list.innerHTML = '<div class="empty">No token packages available yet.</div>'; return; }
+  list.innerHTML = (ME.paypal_enabled ? '' : '<div class="muted" style="margin-bottom:10px">⚠️ Online payment isn\'t set up yet — ask an admin to top up your tokens.</div>')
+    + pkgs.map(p => `<div class="pkg-card">
+        <div><b>${p.tokens} tokens</b><div class="muted">${p.price.toFixed(2)} ${escapeHtml(p.currency)}</div></div>
+        <div class="pkg-pay" id="pay-${p.id}"></div>
+      </div>`).join('');
+  if (!ME.paypal_enabled) return;
+  try {
+    await ensurePaypalSdk(pkgs[0].currency || 'EUR');
+    pkgs.forEach(p => renderPaypalButton(p));
+  } catch { toast('Could not load PayPal.'); }
+}
+function renderPaypalButton(p) {
+  if (!window.paypal) return;
+  window.paypal.Buttons({
+    style: { height: 36 },
+    createOrder: async () => (await jreq('/api/paypal/create-order', 'POST', { package_id: p.id })).order_id,
+    onApprove: async (data) => {
+      try {
+        const r = await jreq('/api/paypal/capture-order', 'POST', { package_id: p.id, order_id: data.orderID });
+        if (r.tokens != null && ME.user) { ME.user.tokens = r.tokens; updateTokenChip(); }
+        toast(`✓ ${r.added || p.tokens} tokens added!`);
+        $('#buy-modal').style.display = 'none';
+      } catch { toast('Payment could not be verified.'); }
+    },
+    onError: () => toast('Payment failed. Please try again.'),
+  }).render('#pay-' + p.id);
+}
+$('#buy-close').onclick = () => { $('#buy-modal').style.display = 'none'; };
+$('#buy-modal').onclick = (e) => { if (e.target.id === 'buy-modal') $('#buy-modal').style.display = 'none'; };
+function openAuth(mode) { $('#auth-modal').style.display = 'flex'; setAuthMode(mode); $('#am-error').textContent = ''; $('#am-email').focus(); }
+function closeAuth() { $('#auth-modal').style.display = 'none'; }
+function setAuthMode(mode) {
+  const signup = mode === 'signup';
+  $('#am-title').textContent = signup ? 'Create your account' : 'Welcome back';
+  $('#am-submit').textContent = signup ? 'Sign up' : 'Log in';
+  $('#am-name-row').style.display = signup ? 'block' : 'none';
+  $('#am-switch').innerHTML = signup ? `Already have an account? <a href="#" id="am-toggle">Log in</a>` : `New here? <a href="#" id="am-toggle">Create an account</a>`;
+  $('#am-toggle').onclick = (e) => { e.preventDefault(); setAuthMode(signup ? 'login' : 'signup'); };
+  $('#auth-modal').dataset.mode = mode;
+  $('#am-google').style.display = ME.google_enabled ? 'flex' : 'none';
+  $('#am-or').style.display = ME.google_enabled ? 'block' : 'none';
+}
+async function submitAuth() {
+  const mode = $('#auth-modal').dataset.mode;
+  const email = $('#am-email').value.trim(), password = $('#am-password').value, name = $('#am-name').value.trim();
+  const err = $('#am-error'); err.textContent = '';
+  if (!email || !password) { err.textContent = 'Email and password are required.'; return; }
+  if (mode === 'signup' && password.length < 8) { err.textContent = 'Password must be at least 8 characters.'; return; }
+  const url = mode === 'signup' ? '/auth/signup' : '/auth/login';
+  const payload = mode === 'signup' ? { email, password, name } : { email, password };
+  try {
+    const r = await fetch(url, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
+    if (!r.ok) { const d = await r.json().catch(() => ({})); err.textContent = d.detail || 'Something went wrong.'; return; }
+    location.reload();
+  } catch { err.textContent = 'Network error.'; }
+}
+
+// -------- navigation --------
+function switchView(name) {
+  document.querySelectorAll('nav button').forEach(b => b.classList.toggle('active', b.dataset.view === name));
+  document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
+  const el = document.getElementById(name); if (el) el.classList.add('active');
+  if (name === 'browse') renderBrowse();
+  if (name === 'learn') renderLearn();
+  if (name === 'progress') renderProgress();
+  if (name === 'reading') renderReading();
+}
+document.querySelectorAll('nav button').forEach(btn => { btn.onclick = () => switchView(btn.dataset.view); });
+
+// -------- progress / journey map --------
+function progressUnits() {
+  const deck = studyDeck();        // level words, id order; same source as lessons
+  const g = goal(), done = learnedSet(), units = [];
+  for (let i = 0; i < deck.length; i += g) {
+    const words = deck.slice(i, i + g);
+    const learned = words.filter(w => done.has(w.id)).length;
+    units.push({ words, learned, complete: words.length > 0 && learned === words.length });
+  }
+  return units;
+}
+function renderProgress() {
+  const units = progressUnits();
+  const lvl = PROFILE?.level || 'B1';
+  const u = ME.user;
+  $('#prog-avatar').innerHTML = (u && u.picture) ? `<img src="${u.picture}" alt="">` : '🧑‍🎓';
+  $('#prog-user').textContent = u ? (u.name || u.email || 'You') : 'Guest';
+  $('#prog-level').textContent = 'Level ' + lvl;
+
+  const total = units.length;
+  const currentIdx = units.findIndex(x => !x.complete);   // first incomplete unit
+  const doneUnits = units.filter(x => x.complete).length;
+  const unlocked = doneUnits + (currentIdx >= 0 ? 1 : 0);
+  const pct = total ? Math.round(unlocked / total * 100) : 0;
+  $('#prog-unlocked').textContent = `Unlocked: ${unlocked} / ${total} units`;
+  $('#prog-pct').textContent = pct + '%';
+  $('#prog-fill').style.width = pct + '%';
+
+  const grid = $('#prog-grid');
+  if (!total) {
+    grid.innerHTML = `<div class="empty" style="grid-column:1/-1">No words at level ${escapeHtml(lvl)} yet.</div>`;
+  } else {
+    grid.innerHTML = units.map((x, i) => {
+      let cls, status, badge;
+      if (x.complete) { cls = 'unlocked'; status = 'Review'; badge = '✓'; }
+      else if (i === currentIdx) { cls = 'current'; status = 'Continue'; badge = '▶'; }
+      else { cls = 'locked'; status = 'Locked'; badge = '🔒'; }
+      const cats = [...new Set(x.words.map(w => w.category))];
+      const sub = cats.length ? cats.slice(0, 2).join(' · ') : `${x.words.length} words`;
+      return `<div class="unit ${cls}" data-unit="${i}" style="cursor:pointer">
+        <span class="u-badge">${badge}</span>
+        <div class="u-no">UNIT ${i + 1}</div>
+        <div class="u-sub">${escapeHtml(sub)}</div>
+        <div class="u-status">${status}</div>
+      </div>`;
+    }).join('');
+    grid.querySelectorAll('.unit').forEach(el => el.onclick = () => {
+      const i = +el.dataset.unit, unit = units[i];
+      const locked = !unit.complete && i !== currentIdx;
+      if (locked) { toast(`🔒 Unit ${i + 1} is locked — finish the earlier units first.`); return; }
+      beginLesson(unit.words);   // completed → review; current → continue
+    });
+  }
+
+  let ms;
+  if (!total) ms = 'Add words at this level to begin.';
+  else if (currentIdx < 0) ms = '🎉 Level complete! Raise your level in ⚙︎ Settings.';
+  else { const c = units[currentIdx], left = c.words.length - c.learned; ms = `Finish Unit ${currentIdx + 1}: ${left} word${left === 1 ? '' : 's'} to go`; }
+  $('#prog-milestone').textContent = '🎯 ' + ms;
+
+  // reading progress
+  const totalR = READINGS.length;
+  const unlockedR = READINGS.filter((r, i) => doneUnits >= (i + 1) * UNITS_PER_READING).length;
+  const rPct = totalR ? Math.round(unlockedR / totalR * 100) : 0;
+  let next;
+  if (!totalR) next = 'No readings posted yet.';
+  else if (unlockedR >= totalR) next = '🎉 All readings unlocked!';
+  else { const need = (unlockedR + 1) * UNITS_PER_READING; next = `Next reading unlocks at ${need} completed units — ${Math.max(0, need - doneUnits)} to go.`; }
+  $('#prog-readings').innerHTML = `
+    <div class="pr-top"><span>📚 <b>Readings unlocked</b></span><span class="pr-count">${unlockedR} / ${totalR}</span></div>
+    <div class="pr-bar"><div class="pr-fill" style="width:${rPct}%"></div></div>
+    <div class="pr-next">${next}</div>`;
+  $('#prog-readings').onclick = () => switchView('reading');
+}
+const completedUnits = () => progressUnits().filter(x => x.complete).length;
+
+// -------- readings (admin-posted stories, unlocked every N completed units) --------
+const UNITS_PER_READING = 2;            // reading i unlocks at (i+1)*UNITS_PER_READING completed units
+let READINGS = [];
+async function loadReadings() { try { READINGS = await api('/api/readings'); } catch { READINGS = []; } }
+function mdInline(s) {
+  return escapeHtml(s)
+    .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
+    .replace(/\*(.+?)\*/g, '<em>$1</em>')
+    .replace(/`(.+?)`/g, '<code>$1</code>');
+}
+function mdStory(md) {
+  return (md || '').replace(/\r\n/g, '\n').split(/\n\s*\n/).map(b => {
+    const h = b.match(/^(#{1,6})\s+(.*)$/);
+    if (h) return `<h${h[1].length}>${mdInline(h[2].trim())}</h${h[1].length}>`;
+    if (/^\s*[-*]\s+/.test(b)) return '<ul>' + b.split('\n').filter(x => x.trim())
+      .map(x => `<li>${mdInline(x.replace(/^\s*[-*]\s+/, ''))}</li>`).join('') + '</ul>';
+    return `<p>${mdInline(b.trim()).replace(/\n/g, '<br>')}</p>`;
+  }).join('');
+}
+function renderReading() {
+  $('#reading-admin').classList.toggle('hidden', !isAdmin());
+  $('#reading-view').innerHTML = '';
+  const done = completedUnits();
+  const list = $('#reading-list');
+  if (!READINGS.length) {
+    list.innerHTML = `<div class="empty">${isAdmin() ? 'No readings yet — post one above.' : 'No readings available yet. Check back soon!'}</div>`;
+    return;
+  }
+  list.innerHTML = READINGS.map((r, i) => {
+    const need = (i + 1) * UNITS_PER_READING;
+    const unlocked = done >= need;
+    const meta = unlocked ? `Level ${escapeHtml(r.level || '')} · Tap to read`
+      : `🔒 Unlock by completing ${need} units (you have ${done})`;
+    return `<div class="read-card ${unlocked ? 'unlocked' : 'locked'}" data-id="${r.id}" data-unlocked="${unlocked ? 1 : 0}">
+      <span class="r-ico">${unlocked ? '📖' : '🔒'}</span>
+      <div class="r-main"><div class="r-name">${escapeHtml(r.title)}</div><div class="r-meta">${meta}</div></div>
+      ${isAdmin() ? `<button class="r-del" data-edit="${r.id}">Edit</button><button class="r-del" data-del="${r.id}">Delete</button>` : ''}
+    </div>`;
+  }).join('');
+  list.querySelectorAll('.read-card').forEach(el => el.onclick = (e) => {
+    if (e.target.dataset.del || e.target.dataset.edit) return;
+    if (el.dataset.unlocked === '1') openReading(+el.dataset.id);
+    else toast('🔒 Keep studying — complete more units to unlock this reading.');
+  });
+  list.querySelectorAll('[data-edit]').forEach(b => b.onclick = (e) => { e.stopPropagation(); editReading(+b.dataset.edit); });
+  list.querySelectorAll('[data-del]').forEach(b => b.onclick = async (e) => {
+    e.stopPropagation();
+    if (!confirm('Delete this reading for everyone?')) return;
+    await api('/api/readings/' + b.dataset.del, { method: 'DELETE' });
+    if (readingEditId === +b.dataset.del) resetReadingForm();
+    await loadReadings(); renderReading();
+  });
+}
+let readingEditId = null;
+async function editReading(id) {
+  const r = await api('/api/readings/' + id);   // full reading (body + audio_url)
+  readingEditId = r.id;
+  $('#r-title').value = r.title || '';
+  $('#r-body').value = r.body || '';
+  $('#r-level').value = r.level || 'B1';
+  $('#r-position').value = r.position || 0;
+  $('#r-audio-url').value = r.audio_url || '';
+  $('#r-audio-file').value = '';
+  $('#reading-admin-title').textContent = '✏️ Edit reading';
+  $('#r-save').textContent = 'Save changes';
+  $('#r-cancel').style.display = '';
+  const tt = $('#r-toast'); tt.style.color = 'var(--muted)';
+  tt.textContent = r.audio_url ? 'Editing — current audio kept unless you replace it.' : 'Editing reading…';
+  $('#reading-admin').scrollIntoView({ behavior: 'smooth', block: 'start' });
+}
+function resetReadingForm() {
+  readingEditId = null;
+  $('#r-title').value = ''; $('#r-body').value = ''; $('#r-audio-url').value = ''; $('#r-audio-file').value = '';
+  $('#r-position').value = 0;
+  $('#reading-admin-title').textContent = '➕ Post a reading (admin)';
+  $('#r-save').textContent = 'Post reading';
+  $('#r-cancel').style.display = 'none';
+  $('#r-toast').textContent = '';
+}
+async function openReading(id) {
+  const r = await api('/api/readings/' + id);
+  const v = $('#reading-view');
+  const audio = r.audio_url ? `<audio controls preload="none" style="width:100%;margin:6px 0 14px" src="${escapeHtml(r.audio_url)}"></audio>` : '';
+  v.innerHTML = `<div class="story"><button class="close-x" id="story-close">✕ Close</button>
+    <h2 style="margin-top:0">${escapeHtml(r.title)}</h2>${audio}${mdStory(r.body)}</div>`;
+  $('#story-close').onclick = () => { v.innerHTML = ''; };
+  v.scrollIntoView({ behavior: 'smooth', block: 'start' });
+}
+// admin: post a reading (+ optional audio file upload)
+$('#r-save').onclick = async () => {
+  const title = $('#r-title').value.trim(), body = $('#r-body').value.trim();
+  const t = $('#r-toast');
+  if (!title || !body) { t.style.color = 'var(--hard)'; t.textContent = '⚠️ Title and story are required.'; return; }
+  t.style.color = 'var(--muted)'; t.textContent = 'Saving…';
+  const payload = {
+    title, body, level: $('#r-level').value || 'B1',
+    position: parseInt($('#r-position').value, 10) || 0,
+    audio_url: $('#r-audio-url').value.trim(),
+  };
+  if (readingEditId) payload.id = readingEditId;   // update instead of create
+  const res = await jreq('/api/readings', 'POST', payload);
+  // if an audio file was chosen, upload it to the new/updated reading
+  const f = $('#r-audio-file').files[0];
+  let uploadStatus = 0;
+  if (f && res && res.id) {
+    t.textContent = 'Uploading audio…';
+    const fd = new FormData(); fd.append('file', f);
+    const up = await fetch('/api/readings/' + res.id + '/audio', { method: 'POST', body: fd });
+    if (!up.ok) uploadStatus = up.status;
+  }
+  const saved = readingEditId ? 'Updated' : 'Posted';
+  resetReadingForm();   // clears the form + toast
+  if (uploadStatus) { t.style.color = 'var(--hard)'; t.textContent = `⚠️ Saved, but audio upload failed (${uploadStatus}).`; }
+  else { t.style.color = 'var(--good)'; t.textContent = `✓ ${saved} "${title}"`; }
+  await loadReadings(); renderReading();
+};
+$('#r-cancel').onclick = resetReadingForm;
+
+// -------- add view --------
+function sentenceRow(de = '', en = '') {
+  const div = document.createElement('div');
+  div.className = 'sent-block';
+  div.innerHTML = `<button class="rm" title="Remove">✕</button>
+    <label class="fld">German sentence</label><textarea class="fld s-de">${escapeHtml(de)}</textarea>
+    <label class="fld">English sentence</label><textarea class="fld s-en">${escapeHtml(en)}</textarea>`;
+  div.querySelector('.rm').onclick = () => { if ($('#sent-list').children.length > 1) div.remove(); };
+  return div;
+}
+function resetSentRows() { $('#sent-list').innerHTML = ''; $('#sent-list').appendChild(sentenceRow()); }
+$('#f-level').innerHTML = LEVELS.map(l => `<option value="${l}"${l === 'B1' ? ' selected' : ''}>${l}</option>`).join('');
+$('#add-sent-row').onclick = () => $('#sent-list').appendChild(sentenceRow());
+$('#f-save').onclick = async () => {
+  const word = $('#f-word').value.trim(), category = $('#f-cat').value.trim() || 'general';
+  const level = $('#f-level').value || 'B1';
+  const sentences = [...$('#sent-list').querySelectorAll('.sent-block')].map(b => ({
+    sentence_de: b.querySelector('.s-de').value.trim(), sentence_en: b.querySelector('.s-en').value.trim(),
+  })).filter(s => s.sentence_de && s.sentence_en);
+  const toast = $('#add-toast');
+  if (!word) { toast.style.color = 'var(--hard)'; toast.textContent = '⚠️ Enter the target word.'; return; }
+  if (!sentences.length && !ME.ai_enabled) { toast.style.color = 'var(--hard)'; toast.textContent = '⚠️ Add at least one sentence (AI generation is off, so a word with no sentences can never be studied).'; return; }
+  const res = await jreq('/api/words', 'POST', { word, category, level, sentences });
+  toast.style.color = 'var(--good)';
+  toast.textContent = res.created ? `✓ Added "${word}" (${level})` : `✓ "${word}" already existed — updated (${level})`;
+  $('#f-word').value = ''; resetSentRows();
+  await loadDeck(); refreshCategorySelects();
+};
+function refreshCategorySelects() {
+  const cats = allCategories().sort();
+  $('#cat-list').innerHTML = cats.map(c => `<option value="${c}">`).join('');
+  const el = $('#browse-cat'), cur = el.value;
+  el.innerHTML = '<option value="all">All categories</option>' + cats.map(c => `<option value="${c}">${c}</option>`).join('');
+  el.value = cur || 'all';
+}
+
+// -------- browse view --------
+function wordStatus(w) {
+  if (learnedSet().has(w.id)) return '✓ learned';
+  if (LEARN.wrong[w.id]) return `⚑ ${LEARN.wrong[w.id]}× wrong`;
+  return 'not yet';
+}
+function visitedSet() {
+  // words the user has actually gone through: learned or answered (right/wrong)
+  const s = new Set((LEARN.learned || []).map(Number));
+  for (const k of Object.keys(LEARN.wrong || {})) s.add(Number(k));
+  return s;
+}
+function renderBrowse() {
+  refreshCategorySelects();
+  const cat = $('#browse-cat').value;
+  const admin = isAdmin();
+  const showAll = admin && $('#browse-all') && $('#browse-all').checked;
+  const visited = visitedSet();
+  let words = cat === 'all' ? DECK : DECK.filter(w => w.category === cat);
+  if (!showAll) words = words.filter(w => visited.has(w.id));  // only words you've studied
+  const list = $('#browse-list');
+  if (!words.length) {
+    list.innerHTML = showAll
+      ? '<div class="empty">No words yet.</div>'
+      : '<div class="empty">No words studied yet — words you study or quiz will show up here for review.</div>';
+    return;
+  }
+  list.innerHTML = words.map(w => `
+    <div class="word-item">
+      <div class="word-head">
+        <div><span class="w" data-say="${escapeHtml(w.word)}" title="Hear it" style="cursor:pointer">${escapeHtml(w.word)}${speechOK ? ' 🔊' : ''}</span><span class="meta"> · ${escapeHtml(w.level || 'B1')} · ${escapeHtml(w.category)} · ${wordStatus(w)}</span></div>
+        ${admin ? `<button class="del" data-del="${w.id}">Delete word</button>` : ''}
+      </div>
+      ${w.sentences.map(s => `<div class="sent-row"><div><div class="de">${escapeHtml(s.sentence_de)}</div><div class="en">${escapeHtml(s.sentence_en)}</div></div>
+        ${admin ? `<button class="x" data-delsent="${s.id}" title="Remove sentence">✕</button>` : ''}</div>`).join('')}
+      ${admin ? `<button class="ghost" data-addsent="${w.id}">+ Add sentence</button>` : ''}
+    </div>`).join('');
+  list.querySelectorAll('[data-say]').forEach(el => el.onclick = () => speak(el.dataset.say));
+  list.querySelectorAll('[data-del]').forEach(b => b.onclick = async () => { if (!confirm('Delete this word for everyone?')) return; await api('/api/words/' + b.dataset.del, { method: 'DELETE' }); await loadDeck(); renderBrowse(); });
+  list.querySelectorAll('[data-delsent]').forEach(b => b.onclick = async () => { await api('/api/sentences/' + b.dataset.delsent, { method: 'DELETE' }); await loadDeck(); renderBrowse(); });
+  list.querySelectorAll('[data-addsent]').forEach(b => b.onclick = async () => {
+    const de = prompt('German sentence:'); if (!de) return; const en = prompt('English sentence:'); if (!en) return;
+    const res = await jreq('/api/words/' + b.dataset.addsent + '/sentences', 'POST', { sentence_de: de, sentence_en: en });
+    if (res.duplicate) { alert('That sentence is already on this word — skipped.'); return; }
+    await loadDeck(); renderBrowse();
+  });
+}
+$('#browse-cat').onchange = renderBrowse;
+$('#browse-all').onchange = renderBrowse;
+
+// -------- daily reminder --------
+const REMINDER_KEY = 'fc_reminder', REMINDED_KEY = 'fc_last_reminded';
+const supportsNotify = 'Notification' in window;
+function loadReminderCfg() { try { return Object.assign({ enabled: false, time: '18:00' }, JSON.parse(localStorage.getItem(REMINDER_KEY)) || {}); } catch { return { enabled: false, time: '18:00' }; } }
+function saveReminderCfg(cfg) { localStorage.setItem(REMINDER_KEY, JSON.stringify(cfg)); }
+function localDayStr() { const d = new Date(); return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`; }
+function pendingCount() { return remainingWords().length + mistakeWords().length; }
+function updateReminderUI() {
+  if (!$('#reminder-bar')) return;   // reminder UI removed for now
+  const cfg = loadReminderCfg(), status = $('#rem-status');
+  if (!supportsNotify) { $('#rem-enabled').disabled = true; $('#rem-time').disabled = true; status.textContent = 'Not supported in this browser'; return; }
+  $('#rem-enabled').checked = cfg.enabled; $('#rem-time').value = cfg.time;
+  if (cfg.enabled && Notification.permission === 'granted') status.textContent = `On — daily at ${cfg.time}`;
+  else if (cfg.enabled && Notification.permission === 'denied') status.textContent = '⚠️ Blocked in browser settings';
+  else status.textContent = 'Off';
+}
+function maybeNotify() {
+  if (!$('#reminder-bar')) return;   // reminder UI removed for now
+  if (!supportsNotify || Notification.permission !== 'granted') return;
+  const cfg = loadReminderCfg(); if (!cfg.enabled) return;
+  const [h, m] = cfg.time.split(':').map(Number); const now = new Date();
+  if (now.getHours() * 60 + now.getMinutes() < h * 60 + m) return;
+  if (localStorage.getItem(REMINDED_KEY) === localDayStr()) return;
+  const n = pendingCount(); if (n <= 0) return;
+  const note = new Notification('Time to learn German 🇩🇪', { body: `You have ${n} word${n === 1 ? '' : 's'} to study or review.`, icon: '/favicon.svg', tag: 'fc-daily' });
+  note.onclick = () => { window.focus(); note.close(); };
+  localStorage.setItem(REMINDED_KEY, localDayStr());
+}
+if (supportsNotify && $('#reminder-bar')) {
+  $('#rem-enabled').onchange = async () => {
+    const cfg = loadReminderCfg();
+    if ($('#rem-enabled').checked) {
+      let perm = Notification.permission;
+      if (perm !== 'granted') perm = await Notification.requestPermission();
+      if (perm !== 'granted') { $('#rem-enabled').checked = false; cfg.enabled = false; saveReminderCfg(cfg); updateReminderUI(); return; }
+      cfg.enabled = true; new Notification('Reminders on ✅', { body: `We'll remind you daily at ${cfg.time}.`, icon: '/favicon.svg' });
+    } else cfg.enabled = false;
+    saveReminderCfg(cfg); updateReminderUI(); maybeNotify();
+  };
+  $('#rem-time').onchange = () => { const cfg = loadReminderCfg(); cfg.time = $('#rem-time').value || '18:00'; saveReminderCfg(cfg); updateReminderUI(); };
+  setInterval(maybeNotify, 60000);
+}
+
+// -------- auth modal wiring --------
+$('#am-close').onclick = closeAuth;
+$('#auth-modal').onclick = (e) => { if (e.target.id === 'auth-modal') closeAuth(); };
+$('#am-submit').onclick = submitAuth;
+['#am-email', '#am-password', '#am-name'].forEach(sel => $(sel).addEventListener('keydown', (e) => { if (e.key === 'Enter') submitAuth(); }));
+
+// -------- login gate --------
+function showGate() {
+  document.querySelector('header').style.display = 'none';
+  document.querySelector('main').style.display = 'none';
+  $('#gate').style.display = 'flex';
+  $('#gate-google').style.display = ME.google_enabled ? 'block' : 'none';
+}
+$('#gate-login').onclick = () => openAuth('login');
+$('#gate-signup').onclick = () => openAuth('signup');
+
+// -------- init --------
+async function init() {
+  ME = await api('/api/me');
+  if (!ME.user) { showGate(); return; }   // app is for signed-in users only
+  renderAuth();
+  const adminDisp = isAdmin() ? '' : 'none';
+  $('#nav-add').style.display = adminDisp;
+  $('#nav-browse').style.display = adminDisp;   // Browse is admin-only (deck management)
+  $('#nav-dashboard').style.display = adminDisp;
+  $('#nav-add-sep').style.display = adminDisp;  // "Admin" separator in the drawer
+  $('#browse-all-wrap').classList.toggle('hidden', !isAdmin());
+  $('#r-level').innerHTML = LEVELS.map(l => `<option value="${l}"${l === 'B1' ? ' selected' : ''}>${l}</option>`).join('');
+  await loadProfile();          // profile first so the deck loads career-flavored sentences
+  await loadDeck();
+  await loadLearn();
+  await loadNotes();
+  await loadReadings();
+  refreshCategorySelects();
+  resetSentRows();
+  updateReminderUI();
+  if (!PROFILE) {
+    openOnboarding(false);
+  } else {
+    const r = resumeLesson();   // continue where the user left off, if mid-lesson
+    if (r) { await beginLesson(r.words, r.idx); if (r.phase === 'quiz' && lesson.length) await startQuiz(lesson, 'lesson'); }
+    else { startLesson(); }
+  }
+  maybeNotify();
+}
+init();
+</script>
+</body>
+</html>
