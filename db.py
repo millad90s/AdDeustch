@@ -35,14 +35,49 @@ SCHEMA = """
         picture       TEXT,
         password_hash TEXT,
         tokens        INTEGER NOT NULL DEFAULT 200,
+        ref_code      TEXT UNIQUE,
         created_at    TEXT NOT NULL DEFAULT (datetime('now'))
+    );
+    -- Referrals: one row per invited user (rewarded once). The referrer earns tokens.
+    CREATE TABLE IF NOT EXISTS referrals (
+        id          INTEGER PRIMARY KEY AUTOINCREMENT,
+        referrer_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+        invited_id  INTEGER NOT NULL UNIQUE REFERENCES users(id) ON DELETE CASCADE,
+        code        TEXT,
+        tokens      INTEGER NOT NULL DEFAULT 0,
+        created_at  TEXT NOT NULL DEFAULT (datetime('now'))
     );
     CREATE TABLE IF NOT EXISTS words (
         id          INTEGER PRIMARY KEY AUTOINCREMENT,
         word        TEXT NOT NULL,
-        category    TEXT NOT NULL DEFAULT 'general',
+        topic       TEXT NOT NULL DEFAULT 'general',
         level       TEXT NOT NULL DEFAULT 'B1',
+        unit_id     INTEGER,
+        lemma       TEXT,
+        pos         TEXT,
+        article     TEXT,
+        audio_url   TEXT,
+        word_url    TEXT,
         created_at  TEXT NOT NULL DEFAULT (datetime('now'))
+    );
+    -- Admin-built unit packs: a named group of words at a level, with a token
+    -- cost to unlock. Users finish the previous unit, then spend tokens to open.
+    CREATE TABLE IF NOT EXISTS units (
+        id          INTEGER PRIMARY KEY AUTOINCREMENT,
+        title       TEXT NOT NULL,
+        level       TEXT NOT NULL DEFAULT 'B1',
+        token_cost  INTEGER NOT NULL DEFAULT 0,
+        position    INTEGER NOT NULL DEFAULT 0,
+        created_at  TEXT NOT NULL DEFAULT (datetime('now')),
+        updated_at  TEXT NOT NULL DEFAULT (datetime('now'))
+    );
+    -- One row per (user, unit) the user has paid to unlock.
+    CREATE TABLE IF NOT EXISTS unit_unlocks (
+        user_id     INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+        unit_id     INTEGER NOT NULL REFERENCES units(id) ON DELETE CASCADE,
+        tokens      INTEGER NOT NULL DEFAULT 0,
+        created_at  TEXT NOT NULL DEFAULT (datetime('now')),
+        PRIMARY KEY (user_id, unit_id)
     );
     CREATE TABLE IF NOT EXISTS sentences (
         id          INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -75,7 +110,7 @@ SCHEMA = """
         id          INTEGER PRIMARY KEY AUTOINCREMENT,
         title       TEXT NOT NULL,
         slug        TEXT NOT NULL UNIQUE,
-        category    TEXT NOT NULL DEFAULT 'general',
+        topic    TEXT NOT NULL DEFAULT 'general',
         body        TEXT NOT NULL,
         position    INTEGER NOT NULL DEFAULT 0,
         created_at  TEXT NOT NULL DEFAULT (datetime('now')),
@@ -217,15 +252,86 @@ def _migrate(conn):
         conn.execute("ALTER TABLE users ADD COLUMN password_hash TEXT")
     if ucols and "tokens" not in ucols:
         conn.execute(f"ALTER TABLE users ADD COLUMN tokens INTEGER NOT NULL DEFAULT {START_TOKENS}")
+    if ucols and "ref_code" not in ucols:
+        conn.execute("ALTER TABLE users ADD COLUMN ref_code TEXT")
     scols = [r["name"] for r in conn.execute("PRAGMA table_info(sentences)").fetchall()]
     if scols and "career" not in scols:
         conn.execute("ALTER TABLE sentences ADD COLUMN career TEXT")
     wcols = [r["name"] for r in conn.execute("PRAGMA table_info(words)").fetchall()]
     if wcols and "level" not in wcols:
         conn.execute("ALTER TABLE words ADD COLUMN level TEXT NOT NULL DEFAULT 'B1'")
+    if wcols and "unit_id" not in wcols:
+        conn.execute("ALTER TABLE words ADD COLUMN unit_id INTEGER")
+    # Legacy `url` held the pronunciation audio link; rename it to audio_url.
+    if wcols and "url" in wcols and "audio_url" not in wcols:
+        conn.execute("ALTER TABLE words RENAME COLUMN url TO audio_url")
+        wcols = [r["name"] for r in conn.execute("PRAGMA table_info(words)").fetchall()]
+    for col in ("lemma", "pos", "article", "audio_url", "word_url"):
+        if wcols and col not in wcols:
+            conn.execute(f"ALTER TABLE words ADD COLUMN {col} TEXT")
+    # Rename category → topic in words table
+    wcols = [r["name"] for r in conn.execute("PRAGMA table_info(words)").fetchall()]
+    if wcols and "category" in wcols and "topic" not in wcols:
+        conn.execute("ALTER TABLE words RENAME COLUMN category TO topic")
+    # Rename category → topic in grammar table
+    gcols = [r["name"] for r in conn.execute("PRAGMA table_info(grammar)").fetchall()]
+    if gcols and "category" in gcols and "topic" not in gcols:
+        conn.execute("ALTER TABLE grammar RENAME COLUMN category TO topic")
     rcols = [r["name"] for r in conn.execute("PRAGMA table_info(readings)").fetchall()]
     if rcols and "audio_url" not in rcols:
         conn.execute("ALTER TABLE readings ADD COLUMN audio_url TEXT")
+    ucols2 = [r["name"] for r in conn.execute("PRAGMA table_info(units)").fetchall()]
+    if ucols2 and "quiz_score" not in ucols2:
+        conn.execute("ALTER TABLE units ADD COLUMN quiz_score INTEGER NOT NULL DEFAULT 6")
+    if ucols and "call_ready" not in ucols:
+        conn.execute("ALTER TABLE users ADD COLUMN call_ready INTEGER NOT NULL DEFAULT 0")
+    conn.execute("""CREATE TABLE IF NOT EXISTS call_logs (
+        id          INTEGER PRIMARY KEY AUTOINCREMENT,
+        caller_id   INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+        callee_id   INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+        tokens_each INTEGER NOT NULL DEFAULT 0,
+        created_at  TEXT NOT NULL DEFAULT (datetime('now'))
+    )""")
+    # per-user score log: one row per (user, unit) pass — later passes don't re-award
+    conn.execute("""CREATE TABLE IF NOT EXISTS unit_scores (
+        user_id   INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+        unit_id   INTEGER NOT NULL REFERENCES units(id) ON DELETE CASCADE,
+        score     INTEGER NOT NULL DEFAULT 0,
+        earned_at TEXT NOT NULL DEFAULT (datetime('now')),
+        PRIMARY KEY (user_id, unit_id)
+    )""")
+    # call score rewards — separate from unit_scores to avoid FK constraint on units
+    conn.execute("""CREATE TABLE IF NOT EXISTS call_scores (
+        id         INTEGER PRIMARY KEY AUTOINCREMENT,
+        user_id    INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+        score      INTEGER NOT NULL DEFAULT 0,
+        call_log_id INTEGER REFERENCES call_logs(id),
+        earned_at  TEXT NOT NULL DEFAULT (datetime('now'))
+    )""")
+    # tags per word
+    conn.execute("""CREATE TABLE IF NOT EXISTS word_tags (
+        id      INTEGER PRIMARY KEY AUTOINCREMENT,
+        word_id INTEGER NOT NULL REFERENCES words(id) ON DELETE CASCADE,
+        tag     TEXT NOT NULL,
+        UNIQUE(word_id, tag)
+    )""")
+    # multiple meanings per word
+    conn.execute("""CREATE TABLE IF NOT EXISTS word_meanings (
+        id         INTEGER PRIMARY KEY AUTOINCREMENT,
+        word_id    INTEGER NOT NULL REFERENCES words(id) ON DELETE CASCADE,
+        meaning    TEXT NOT NULL,
+        position   INTEGER NOT NULL DEFAULT 0
+    )""")
+    # inbox messages
+    conn.execute("""CREATE TABLE IF NOT EXISTS inbox (
+        id         INTEGER PRIMARY KEY AUTOINCREMENT,
+        user_id    INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+        subject    TEXT NOT NULL,
+        body       TEXT NOT NULL,
+        icon       TEXT NOT NULL DEFAULT '📬',
+        read       INTEGER NOT NULL DEFAULT 0,
+        created_at TEXT NOT NULL DEFAULT (datetime('now'))
+    )""")
 
 
 # --------------------------------------------------------------------------
@@ -261,8 +367,10 @@ def verify_password(password, stored):
 # users
 # --------------------------------------------------------------------------
 def upsert_user(sub, email, name, picture):
-    """Create or update a user by their Google subject id. Returns the row."""
+    """Create or update a user by their Google subject id. Returns (row, created)
+    where `created` is True only when a brand-new user row was inserted."""
     with connect() as conn:
+        existed = conn.execute("SELECT 1 FROM users WHERE sub = ?", (sub,)).fetchone() is not None
         conn.execute(
             """INSERT INTO users (sub, email, name, picture, tokens) VALUES (?, ?, ?, ?, ?)
                ON CONFLICT(sub) DO UPDATE SET email=excluded.email,
@@ -270,7 +378,7 @@ def upsert_user(sub, email, name, picture):
             (sub, email, name, picture, START_TOKENS),
         )
         row = conn.execute("SELECT * FROM users WHERE sub = ?", (sub,)).fetchone()
-        return dict(row)
+        return dict(row), (not existed)
 
 
 def get_user(user_id):
@@ -347,6 +455,94 @@ def grant_tokens(user_id, amount):
         return row["tokens"] if row else None
 
 
+# --------------------------------------------------------------------------
+# referrals (invite friends → earn tokens)
+# --------------------------------------------------------------------------
+def _gen_ref_code():
+    return base64.urlsafe_b64encode(os.urandom(6)).decode().rstrip("=")
+
+
+def ensure_ref_code(user_id):
+    """Return the user's referral code, generating a unique one on first use."""
+    with connect() as conn:
+        row = conn.execute("SELECT ref_code FROM users WHERE id = ?", (user_id,)).fetchone()
+        if row and row["ref_code"]:
+            return row["ref_code"]
+        for _ in range(10):
+            code = _gen_ref_code()
+            try:
+                conn.execute("UPDATE users SET ref_code = ? WHERE id = ?", (code, user_id))
+                return code
+            except sqlite3.IntegrityError:
+                continue
+    return None
+
+
+def get_user_by_ref_code(code):
+    if not code:
+        return None
+    with connect() as conn:
+        row = conn.execute("SELECT * FROM users WHERE ref_code = ?", (code.strip(),)).fetchone()
+        return dict(row) if row else None
+
+
+def apply_referral(code, invited_id, tokens):
+    """Credit the referrer (owner of `code`) for inviting `invited_id`, once.
+    Returns the referrer id if a reward was granted, else None."""
+    referrer = get_user_by_ref_code(code)
+    if not referrer or referrer["id"] == invited_id:
+        return None
+    with connect() as conn:
+        # one reward per invited user
+        if conn.execute("SELECT 1 FROM referrals WHERE invited_id = ?", (invited_id,)).fetchone():
+            return None
+        conn.execute(
+            "INSERT INTO referrals (referrer_id, invited_id, code, tokens) VALUES (?, ?, ?, ?)",
+            (referrer["id"], invited_id, code, int(tokens)),
+        )
+        conn.execute("UPDATE users SET tokens = tokens + ? WHERE id = ?", (int(tokens), referrer["id"]))
+    return referrer["id"]
+
+
+def referral_stats(user_id):
+    with connect() as conn:
+        row = conn.execute(
+            "SELECT COUNT(*) AS n, COALESCE(SUM(tokens),0) AS earned FROM referrals WHERE referrer_id = ?",
+            (user_id,),
+        ).fetchone()
+        return {"invited": row["n"], "earned": row["earned"]}
+
+
+def leaderboard(user_id=None, limit=10):
+    """Top learners by words learned (earned via quizzes). Also returns the
+    requesting user's own rank/count so they can see where they stand."""
+    with connect() as conn:
+        rows = conn.execute(
+            """SELECT u.id, u.name, u.email, u.call_ready, COUNT(*) AS learned
+               FROM users u JOIN learning l ON l.user_id = u.id AND l.learned = 1
+               GROUP BY u.id HAVING learned > 0
+               ORDER BY learned DESC, u.id ASC LIMIT ?""",
+            (limit,),
+        ).fetchall()
+        top = [{"id": r["id"], "name": r["name"], "email": r["email"],
+                "learned": r["learned"], "call_ready": bool(r["call_ready"])}
+               for r in rows]
+        me = None
+        if user_id is not None:
+            mine = conn.execute(
+                "SELECT COUNT(*) AS c FROM learning WHERE user_id = ? AND learned = 1",
+                (user_id,),
+            ).fetchone()["c"]
+            ahead = conn.execute(
+                """SELECT COUNT(*) AS a FROM
+                   (SELECT user_id, COUNT(*) AS n FROM learning WHERE learned = 1 GROUP BY user_id)
+                   WHERE n > ?""",
+                (mine,),
+            ).fetchone()["a"]
+            me = {"learned": mine, "rank": (ahead + 1) if mine > 0 else None}
+        return {"top": top, "me": me}
+
+
 def has_charged(user_id, word_id, career):
     """Has this user already paid tokens for this (word, career)?"""
     with connect() as conn:
@@ -396,24 +592,30 @@ def find_word(conn, word):
     return row["id"] if row else None
 
 
-def add_word(word, category="general", sentences=None, level="B1"):
+def add_word(word, topic="general", sentences=None, level="B1",
+             lemma=None, pos=None, article=None, audio_url=None, word_url=None,
+             unit_id=None):
     """Add a word, or merge sentences into an existing word with the same text
     (case-insensitive). Duplicate sentences are skipped. `level` is the CEFR level
-    the word is taught at (used to scope a learner's deck); on an existing word the
-    level is updated to the value provided.
-    Returns (word_id, created) where `created` is True only if a new word row
-    was inserted."""
+    the word is taught at; lemma/pos/article are extra dictionary metadata,
+    audio_url is the pronunciation .mp3 link and word_url links to the word's
+    dictionary page. On an existing word these fields are updated to the values
+    provided. Returns (word_id, created) where `created` is True only if a new
+    word row was inserted."""
     level = (level or "B1").strip().upper() or "B1"
+    cat = (topic or "general").strip() or "general"
+    meta = tuple((v or "").strip() or None for v in (lemma, pos, article, audio_url, word_url))
     with connect() as conn:
         existing = find_word(conn, word)
         if existing is not None:
             word_id, created = existing, False
-            conn.execute("UPDATE words SET level = ? WHERE id = ?", (level, word_id))
+            conn.execute(
+                "UPDATE words SET level=?, topic=?, lemma=?, pos=?, article=?, audio_url=?, word_url=?, unit_id=? WHERE id=?",
+                (level, cat, *meta, unit_id, word_id))
         else:
             cur = conn.execute(
-                "INSERT INTO words (word, category, level) VALUES (?, ?, ?)",
-                (word.strip(), (category or "general").strip() or "general", level),
-            )
+                "INSERT INTO words (word, topic, level, lemma, pos, article, audio_url, word_url, unit_id) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
+                (word.strip(), cat, level, *meta, unit_id))
             word_id, created = cur.lastrowid, True
         for de, en in (sentences or []):
             _insert_sentence_if_new(conn, word_id, de, en)
@@ -428,6 +630,52 @@ def add_sentence(word_id, sentence_de, sentence_en):
             return None
         sid = _insert_sentence_if_new(conn, word_id, sentence_de, sentence_en)
         return sid if sid is not None else 0
+
+
+def get_meanings(word_id):
+    """Return list of meaning strings for a word, ordered by position."""
+    with connect() as conn:
+        rows = conn.execute(
+            "SELECT meaning FROM word_meanings WHERE word_id = ? ORDER BY position",
+            (word_id,),
+        ).fetchall()
+        return [r["meaning"] for r in rows]
+
+
+def set_meanings(word_id, meanings: list[str]):
+    """Replace all meanings for a word."""
+    with connect() as conn:
+        conn.execute("DELETE FROM word_meanings WHERE word_id = ?", (word_id,))
+        for i, m in enumerate(meanings):
+            m = m.strip()
+            if m:
+                conn.execute(
+                    "INSERT INTO word_meanings (word_id, meaning, position) VALUES (?, ?, ?)",
+                    (word_id, m, i),
+                )
+
+
+def get_tags(word_id):
+    """Return list of tag strings for a word, alphabetically sorted."""
+    with connect() as conn:
+        rows = conn.execute(
+            "SELECT tag FROM word_tags WHERE word_id = ? ORDER BY tag",
+            (word_id,),
+        ).fetchall()
+        return [r["tag"] for r in rows]
+
+
+def set_tags(word_id, tags: list[str]):
+    """Replace all tags for a word."""
+    with connect() as conn:
+        conn.execute("DELETE FROM word_tags WHERE word_id = ?", (word_id,))
+        for t in tags:
+            t = t.strip().lower()
+            if t:
+                conn.execute(
+                    "INSERT OR IGNORE INTO word_tags (word_id, tag) VALUES (?, ?)",
+                    (word_id, t),
+                )
 
 
 def delete_word(word_id):
@@ -461,6 +709,12 @@ def list_words(career=None, user_id=None):
     with connect() as conn:
         words = conn.execute("SELECT * FROM words ORDER BY id DESC").fetchall()
         sents = conn.execute("SELECT * FROM sentences ORDER BY id ASC").fetchall()
+        meanings_rows = conn.execute(
+            "SELECT word_id, meaning FROM word_meanings ORDER BY word_id, position"
+        ).fetchall()
+        tags_rows = conn.execute(
+            "SELECT word_id, tag FROM word_tags ORDER BY word_id, tag"
+        ).fetchall()
         paid_ids = set()
         if user_id is not None and career is not None:
             paid_ids = {r["word_id"] for r in conn.execute(
@@ -475,10 +729,18 @@ def list_words(career=None, user_id=None):
             by_word.setdefault(s["word_id"], []).append(_sentence_dict(s))
         if career is not None and c == career:
             has_career[s["word_id"]] = True
+    meanings_by_word = {}
+    for m in meanings_rows:
+        meanings_by_word.setdefault(m["word_id"], []).append(m["meaning"])
+    tags_by_word = {}
+    for t in tags_rows:
+        tags_by_word.setdefault(t["word_id"], []).append(t["tag"])
     out = []
     for w in words:
         d = dict(w)
         d["sentences"] = by_word.get(w["id"], [])
+        d["meanings"] = meanings_by_word.get(w["id"], [])
+        d["tags"] = tags_by_word.get(w["id"], [])
         if career is not None:
             d["has_career_sentences"] = has_career.get(w["id"], False)
             if user_id is not None:
@@ -514,9 +776,22 @@ def add_career_sentences(word_id, career, pairs):
 def categories():
     with connect() as conn:
         rows = conn.execute(
-            "SELECT DISTINCT category FROM words ORDER BY category"
+            "SELECT DISTINCT topic FROM words ORDER BY topic"
         ).fetchall()
-        return [r["category"] for r in rows]
+        return [r["topic"] for r in rows]
+
+
+def career_suggestions(limit=200):
+    """Distinct careers that users have entered (most-used first) — used to seed
+    the career combo box so the list grows as people fill in their own."""
+    with connect() as conn:
+        rows = conn.execute(
+            """SELECT career, COUNT(*) AS n FROM profiles
+               WHERE career IS NOT NULL AND TRIM(career) != ''
+               GROUP BY LOWER(TRIM(career)) ORDER BY n DESC, career ASC LIMIT ?""",
+            (limit,),
+        ).fetchall()
+        return [r["career"] for r in rows]
 
 
 # --------------------------------------------------------------------------
@@ -652,7 +927,7 @@ def list_grammar():
     """Sidebar list: titles only (no body), ordered by position then title."""
     with connect() as conn:
         rows = conn.execute(
-            "SELECT id, title, slug, category, position FROM grammar "
+            "SELECT id, title, slug, topic, position FROM grammar "
             "ORDER BY position ASC, title ASC"
         ).fetchall()
         return [dict(r) for r in rows]
@@ -664,18 +939,18 @@ def get_grammar(slug):
         return dict(row) if row else None
 
 
-def add_grammar(title, body, category="general", position=0):
+def add_grammar(title, body, topic="general", position=0):
     """Create or update (by slug) a grammar topic. Returns its id."""
     slug = slugify(title)
     with connect() as conn:
         conn.execute(
-            """INSERT INTO grammar (title, slug, category, body, position, updated_at)
+            """INSERT INTO grammar (title, slug, topic, body, position, updated_at)
                VALUES (?, ?, ?, ?, ?, datetime('now'))
                ON CONFLICT(slug) DO UPDATE SET
-                   title=excluded.title, category=excluded.category,
+                   title=excluded.title, topic=excluded.topic,
                    body=excluded.body, position=excluded.position,
                    updated_at=datetime('now')""",
-            (title.strip(), slug, (category or "general").strip() or "general",
+            (title.strip(), slug, (topic or "general").strip() or "general",
              body, position),
         )
         return conn.execute("SELECT id FROM grammar WHERE slug = ?", (slug,)).fetchone()["id"]
@@ -739,6 +1014,328 @@ def delete_reading(reading_id):
     with connect() as conn:
         cur = conn.execute("DELETE FROM readings WHERE id = ?", (reading_id,))
         return cur.rowcount > 0
+
+
+# --------------------------------------------------------------------------
+# units (admin-built packs of words, unlocked by spending tokens)
+# --------------------------------------------------------------------------
+def _unit_word_map(conn):
+    """unit_id -> [word_id,...] (ordered by word id)."""
+    m = {}
+    for r in conn.execute("SELECT id, unit_id FROM words WHERE unit_id IS NOT NULL ORDER BY id ASC").fetchall():
+        m.setdefault(r["unit_id"], []).append(r["id"])
+    return m
+
+
+def list_units(level=None, user_id=None):
+    """Units ordered by (level, position, id). Each carries its word ids; with a
+    user_id, also a `paid` flag (has the user unlocked it)."""
+    with connect() as conn:
+        sql = "SELECT * FROM units"
+        args = ()
+        if level:
+            sql += " WHERE level = ?"
+            args = (level,)
+        sql += " ORDER BY level ASC, position ASC, id ASC"
+        rows = conn.execute(sql, args).fetchall()
+        wmap = _unit_word_map(conn)
+        paid = set()
+        if user_id is not None:
+            paid = {r["unit_id"] for r in conn.execute(
+                "SELECT unit_id FROM unit_unlocks WHERE user_id = ?", (user_id,)).fetchall()}
+        scored = set()
+        if user_id is not None:
+            scored = {r["unit_id"] for r in conn.execute(
+                "SELECT unit_id FROM unit_scores WHERE user_id = ?", (user_id,)).fetchall()}
+        out = []
+        for r in rows:
+            d = dict(r)
+            d["word_ids"] = wmap.get(r["id"], [])
+            if user_id is not None:
+                d["paid"] = r["id"] in paid
+                d["score_earned"] = r["id"] in scored
+            out.append(d)
+        return out
+
+
+def get_unit(unit_id):
+    with connect() as conn:
+        row = conn.execute("SELECT * FROM units WHERE id = ?", (unit_id,)).fetchone()
+        if not row:
+            return None
+        d = dict(row)
+        d["word_ids"] = [r["id"] for r in conn.execute(
+            "SELECT id FROM words WHERE unit_id = ? ORDER BY id ASC", (unit_id,)).fetchall()]
+        return d
+
+
+def save_unit(title, level, token_cost=0, position=0, unit_id=None, **kwargs):
+    lvl = (level or "B1").strip().upper() or "B1"
+    with connect() as conn:
+        if unit_id:
+            conn.execute(
+                """UPDATE units SET title=?, level=?, token_cost=?, position=?, quiz_score=?,
+                       updated_at=datetime('now') WHERE id=?""",
+                (title.strip(), lvl, max(0, int(token_cost)), int(position),
+                 max(0, int(kwargs.get("quiz_score", 6))), unit_id))
+            return unit_id
+        cur = conn.execute(
+            "INSERT INTO units (title, level, token_cost, position, quiz_score) VALUES (?, ?, ?, ?, ?)",
+            (title.strip(), lvl, max(0, int(token_cost)), int(position),
+             max(0, int(kwargs.get("quiz_score", 6)))))
+        return cur.lastrowid
+
+
+def auto_assign_units(unit_size=None):
+    """Group all words (ordered by id) into units of `unit_size` words each.
+    Words already in a valid unit are left alone. Unassigned words fill the
+    last existing auto-unit first, then new units are created as needed.
+    unit_size defaults to the UNIT_SIZE env var, then 10."""
+    if unit_size is None:
+        try:
+            unit_size = int(os.getenv("UNIT_SIZE", "10"))
+        except (ValueError, TypeError):
+            unit_size = 10
+    unit_size = max(1, unit_size)
+
+    with connect() as conn:
+        # All words ordered oldest-first (stable order so unit membership is stable)
+        all_words = conn.execute(
+            "SELECT id FROM words ORDER BY id ASC"
+        ).fetchall()
+        if not all_words:
+            return
+
+        word_ids = [r["id"] for r in all_words]
+        total = len(word_ids)
+
+        # Existing auto-units ordered by position
+        existing = conn.execute(
+            "SELECT id, position FROM units ORDER BY position ASC, id ASC"
+        ).fetchall()
+
+        # Compute how many units we need
+        import math
+        needed = math.ceil(total / unit_size)
+
+        # Create missing units
+        unit_ids = [r["id"] for r in existing]
+        next_pos = (existing[-1]["position"] + 1) if existing else 1
+        while len(unit_ids) < needed:
+            n = len(unit_ids) + 1
+            cur = conn.execute(
+                "INSERT INTO units (title, level, token_cost, position, quiz_score) VALUES (?, ?, ?, ?, ?)",
+                (f"Unit {n}", "B1", 0, next_pos, 6),
+            )
+            unit_ids.append(cur.lastrowid)
+            next_pos += 1
+
+        # Assign words to units in order
+        for i, wid in enumerate(word_ids):
+            uid = unit_ids[i // unit_size]
+            conn.execute("UPDATE words SET unit_id = ? WHERE id = ?", (uid, wid))
+
+
+def delete_unit(unit_id):
+    with connect() as conn:
+        conn.execute("UPDATE words SET unit_id = NULL WHERE unit_id = ?", (unit_id,))
+        cur = conn.execute("DELETE FROM units WHERE id = ?", (unit_id,))
+        return cur.rowcount > 0
+
+
+def award_unit_score(user_id, unit_id):
+    """Award the unit's quiz_score to the user (once only). Returns score awarded (0 if already claimed)."""
+    with connect() as conn:
+        unit = conn.execute("SELECT quiz_score FROM units WHERE id = ?", (unit_id,)).fetchone()
+        if not unit:
+            return 0
+        score = unit["quiz_score"] or 0
+        cur = conn.execute(
+            "INSERT OR IGNORE INTO unit_scores (user_id, unit_id, score) VALUES (?, ?, ?)",
+            (user_id, unit_id, score))
+        return score if cur.rowcount else 0
+
+
+def award_call_score(user_id, score, call_log_id=None):
+    """Award score stars to a user for answering a call."""
+    with connect() as conn:
+        conn.execute(
+            "INSERT INTO call_scores (user_id, score, call_log_id) VALUES (?, ?, ?)",
+            (user_id, score, call_log_id),
+        )
+
+
+def get_user_score(user_id):
+    """Total score earned by the user across all units + call rewards."""
+    with connect() as conn:
+        quiz_row = conn.execute(
+            "SELECT COALESCE(SUM(score), 0) AS total FROM unit_scores WHERE user_id = ?",
+            (user_id,)).fetchone()
+        call_row = conn.execute(
+            "SELECT COALESCE(SUM(score), 0) AS total FROM call_scores WHERE user_id = ?",
+            (user_id,)).fetchone()
+        earned = {r["unit_id"]: r["score"] for r in conn.execute(
+            "SELECT unit_id, score FROM unit_scores WHERE user_id = ?", (user_id,)).fetchall()}
+        total = (quiz_row["total"] or 0) + (call_row["total"] or 0)
+        return {"total": total, "by_unit": earned}
+
+
+# --------------------------------------------------------------------------
+# inbox
+# --------------------------------------------------------------------------
+
+def send_message(user_id, subject, body, icon="📬"):
+    """Deliver a message to a user's inbox."""
+    with connect() as conn:
+        conn.execute(
+            "INSERT INTO inbox (user_id, subject, body, icon) VALUES (?, ?, ?, ?)",
+            (user_id, subject, body, icon),
+        )
+
+
+def get_inbox(user_id):
+    with connect() as conn:
+        rows = conn.execute(
+            "SELECT * FROM inbox WHERE user_id = ? ORDER BY created_at DESC",
+            (user_id,),
+        ).fetchall()
+        return [dict(r) for r in rows]
+
+
+def unread_count(user_id):
+    with connect() as conn:
+        row = conn.execute(
+            "SELECT COUNT(*) AS n FROM inbox WHERE user_id = ? AND read = 0",
+            (user_id,),
+        ).fetchone()
+        return row["n"]
+
+
+def mark_read(user_id, message_id=None):
+    """Mark one message (or all) as read."""
+    with connect() as conn:
+        if message_id is not None:
+            conn.execute(
+                "UPDATE inbox SET read = 1 WHERE id = ? AND user_id = ?",
+                (message_id, user_id),
+            )
+        else:
+            conn.execute(
+                "UPDATE inbox SET read = 1 WHERE user_id = ?",
+                (user_id,),
+            )
+
+
+# --------------------------------------------------------------------------
+# call-ready / peer calls
+# --------------------------------------------------------------------------
+
+CALL_COST_DEFAULT = 10
+
+
+def call_cost():
+    v = get_setting("call_cost")
+    try:
+        return int(v) if v else CALL_COST_DEFAULT
+    except (ValueError, TypeError):
+        return CALL_COST_DEFAULT
+
+
+def set_call_ready(user_id, ready: bool):
+    """Enable/disable call-ready. Free toggle — no token requirement."""
+    with connect() as conn:
+        conn.execute(
+            "UPDATE users SET call_ready = ? WHERE id = ?",
+            (1 if ready else 0, user_id),
+        )
+        return True, None
+
+
+def initiate_call(caller_id, callee_id):
+    """Caller pays call_cost() tokens. Callee earns call_cost() score stars. Returns (ok, callee_name|reason)."""
+    cost = call_cost()
+    with connect() as conn:
+        rows = conn.execute(
+            "SELECT id, tokens, call_ready, name FROM users WHERE id IN (?, ?)",
+            (caller_id, callee_id),
+        ).fetchall()
+        by_id = {r["id"]: r for r in rows}
+        caller = by_id.get(caller_id)
+        callee = by_id.get(callee_id)
+        if not caller or not callee:
+            return False, "user_not_found"
+        if not callee["call_ready"]:
+            return False, "callee_not_ready"
+        if caller["tokens"] < cost:
+            return False, "caller_insufficient"
+        # Only caller pays tokens
+        conn.execute("UPDATE users SET tokens = tokens - ? WHERE id = ?", (cost, caller_id))
+        # Log the call
+        cur = conn.execute(
+            "INSERT INTO call_logs (caller_id, callee_id, tokens_each) VALUES (?, ?, ?)",
+            (caller_id, callee_id, cost),
+        )
+        call_log_id = cur.lastrowid
+        # Callee earns score stars equal to call cost
+        conn.execute(
+            "INSERT INTO call_scores (user_id, score, call_log_id) VALUES (?, ?, ?)",
+            (callee_id, cost, call_log_id),
+        )
+        return True, callee["name"]
+
+
+def set_unit_words(unit_id, word_ids):
+    """Make exactly `word_ids` the members of this unit (clears others)."""
+    ids = [int(w) for w in word_ids]
+    with connect() as conn:
+        conn.execute("UPDATE words SET unit_id = NULL WHERE unit_id = ?", (unit_id,))
+        for wid in ids:
+            conn.execute("UPDATE words SET unit_id = ? WHERE id = ?", (unit_id, wid))
+        return True
+
+
+def _unit_completed(conn, user_id, word_ids):
+    if not word_ids:
+        return True
+    qs = ",".join("?" * len(word_ids))
+    n = conn.execute(
+        f"SELECT COUNT(*) c FROM learning WHERE user_id=? AND learned=1 AND word_id IN ({qs})",
+        (user_id, *word_ids)).fetchone()["c"]
+    return n >= len(word_ids)
+
+
+def unlock_unit(user_id, unit_id):
+    """Spend the unit's tokens to unlock it for the user. Enforces: not already
+    unlocked, previous unit completed, enough tokens. Returns
+    {ok, tokens, reason}."""
+    with connect() as conn:
+        unit = conn.execute("SELECT * FROM units WHERE id = ?", (unit_id,)).fetchone()
+        if not unit:
+            return {"ok": False, "reason": "not_found"}
+        if conn.execute("SELECT 1 FROM unit_unlocks WHERE user_id=? AND unit_id=?",
+                        (user_id, unit_id)).fetchone():
+            row = conn.execute("SELECT tokens FROM users WHERE id=?", (user_id,)).fetchone()
+            return {"ok": True, "tokens": row["tokens"], "already": True}
+        # previous unit (same level) must be completed
+        prev = conn.execute(
+            """SELECT * FROM units WHERE level=? AND (position < ? OR (position=? AND id < ?))
+               ORDER BY position DESC, id DESC LIMIT 1""",
+            (unit["level"], unit["position"], unit["position"], unit_id)).fetchone()
+        if prev:
+            prev_words = [r["id"] for r in conn.execute(
+                "SELECT id FROM words WHERE unit_id=?", (prev["id"],)).fetchall()]
+            if not _unit_completed(conn, user_id, prev_words):
+                return {"ok": False, "reason": "prev_incomplete"}
+        cost = int(unit["token_cost"])
+        cur = conn.execute(
+            "UPDATE users SET tokens = tokens - ? WHERE id=? AND tokens >= ?",
+            (cost, user_id, cost))
+        if cur.rowcount == 0:
+            return {"ok": False, "reason": "insufficient"}
+        conn.execute("INSERT INTO unit_unlocks (user_id, unit_id, tokens) VALUES (?, ?, ?)",
+                     (user_id, unit_id, cost))
+        bal = conn.execute("SELECT tokens FROM users WHERE id=?", (user_id,)).fetchone()["tokens"]
+        return {"ok": True, "tokens": bal, "spent": cost}
 
 
 # --------------------------------------------------------------------------
@@ -931,6 +1528,8 @@ def admin_dashboard(recent=40):
             "readings": scalar("SELECT COUNT(*) FROM readings"),
             "purchases": scalar("SELECT COUNT(*) FROM purchases"),
             "revenue_cents": scalar("SELECT COALESCE(SUM(price_cents),0) FROM purchases"),
+            "referrals": scalar("SELECT COUNT(*) FROM referrals"),
+            "referral_tokens_awarded": scalar("SELECT COALESCE(SUM(tokens),0) FROM referrals"),
         }
     return {"summary": summary, "users": users, "careers": careers,
             "packages": packages, "recent_purchases": recent_purchases,

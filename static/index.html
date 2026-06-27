@@ -88,6 +88,15 @@
   .speak { background: none; border: none; cursor: pointer; font-size: 1rem; padding: 0 4px; vertical-align: middle; opacity: .65; }
   .speak:hover { opacity: 1; }
   .answer .trans { color: var(--muted); margin-top: 8px; font-size: 1.05rem; }
+  .w-meta { font-size: .78rem; color: var(--accent); margin-top: 4px; text-transform: none; }
+  .w-meanings { display: flex; flex-wrap: wrap; gap: 6px; margin: 6px 0; }
+  .w-meaning-chip { font-size: .78rem; background: var(--bg); border: 1px solid var(--border); border-radius: 20px; padding: 3px 10px; color: var(--text); }
+  .tip-btn { background: none; border: none; cursor: pointer; font-size: 1.1rem; padding: 0 2px; vertical-align: middle; opacity: .55; transition: opacity .15s; line-height: 1; }
+  .tip-btn:hover { opacity: 1; }
+  .tip-popup { position: fixed; z-index: 100; background: var(--panel); border: 1px solid var(--border); border-radius: 10px; padding: 12px 16px 10px; font-size: .85rem; color: var(--text); line-height: 1.6; box-shadow: 0 4px 20px rgba(0,0,0,.22); width: min(280px, 90vw); max-height: 60vh; overflow-y: auto; word-break: break-word; white-space: normal; }
+  .tip-popup-close { position: absolute; top: 5px; right: 8px; background: none; border: none; cursor: pointer; font-size: .85rem; color: var(--muted); }
+  .w-link { display: inline-block; margin-top: 6px; font-size: .76rem; color: var(--muted); text-decoration: none; }
+  .w-link:hover { color: var(--accent); text-decoration: underline; }
   .hint { color: var(--muted); font-size: .85rem; }
   .row-actions { display: flex; gap: 8px; margin-top: 16px; align-items: stretch; }
   .row-actions .primary { flex: 1; }
@@ -102,11 +111,17 @@
   .q-word { font-size: 1.5rem; font-weight: 700; margin-bottom: 16px; }
   .q-word .pos { font-size: .8rem; color: var(--muted); font-weight: 400; }
   .q-english { font-size: 1.25rem; font-weight: 600; font-style: italic; color: var(--text); margin-bottom: 16px; line-height: 1.4; }
-  .opt { width: 100%; text-align: left; background: var(--panel); color: var(--text); border: 1px solid var(--border);
-    border-radius: 12px; padding: 14px 16px; margin-bottom: 10px; cursor: pointer; font-size: 1rem; line-height: 1.45; }
-  .opt:hover { border-color: var(--accent); }
-  .opt.correct { border-color: var(--good); background: rgba(34,197,94,.12); }
-  .opt.wrong { border-color: var(--again); background: rgba(239,68,68,.12); }
+  #opts { display: flex; flex-direction: column; gap: 12px; }
+  .opt { -webkit-appearance: none; appearance: none; display: block; width: 100%; text-align: left;
+    background: var(--panel-2); color: var(--text); border: 1.5px solid var(--border);
+    border-left: 4px solid var(--border);
+    border-radius: 14px; padding: 18px 20px; cursor: pointer;
+    font-size: 1.05rem; font-family: inherit; line-height: 1.55;
+    box-shadow: 0 2px 8px rgba(0,0,0,.15);
+    transition: border-color .15s, border-left-color .15s, background .15s, box-shadow .15s; }
+  .opt:hover:not(:disabled) { border-color: var(--accent); border-left-color: var(--accent); background: var(--panel-2); box-shadow: 0 0 0 2px rgba(56,189,248,.2); }
+  .opt.correct { border-color: var(--good) !important; border-left-color: var(--good) !important; background: rgba(34,197,94,.1) !important; box-shadow: 0 0 0 2px rgba(34,197,94,.25) !important; color: var(--text); }
+  .opt.wrong   { border-color: var(--again) !important; border-left-color: var(--again) !important; background: rgba(239,68,68,.1) !important; box-shadow: 0 0 0 2px rgba(239,68,68,.25) !important; color: var(--text); }
   .opt:disabled { cursor: default; }
 
   .result { text-align: center; padding: 24px 12px; }
@@ -151,20 +166,47 @@
   .unit .u-no { font-size: .72rem; font-weight: 700; letter-spacing: .02em; }
   .unit .u-sub { font-size: .64rem; opacity: .85; line-height: 1.2; }
   .unit .u-status { font-size: .62rem; font-weight: 700; text-transform: uppercase; letter-spacing: .03em; }
+  .unit .u-meta { font-size: .65rem; font-weight: 600; opacity: .95; margin-top: 1px; }
   .unit.locked { background: var(--panel); color: var(--muted); }
   .unit.unlocked { background: linear-gradient(160deg, #14532d, #16a34a); color: #eafff1; border-color: #22c55e; }
   .unit.current { background: linear-gradient(160deg, #15803d, #22c55e); color: #eafff1; border-color: var(--accent); box-shadow: 0 0 0 2px rgba(56,189,248,.45); }
+  .unit.buy { background: linear-gradient(160deg, #92400e, #f59e0b); color: #fff7ed; border-color: var(--hard); }
+  .u-admin-row { display: flex; justify-content: space-between; align-items: center; gap: 8px; border: 1px solid var(--border); border-radius: 8px; padding: 8px 10px; margin-bottom: 6px; font-size: .82rem; }
+  .unit-words { display: grid; grid-template-columns: 1fr 1fr; gap: 4px 10px; max-height: 200px; overflow-y: auto; border: 1px solid var(--border); border-radius: 8px; padding: 8px; margin-bottom: 10px; }
+  .unit-words .uw { display: flex; align-items: center; gap: 6px; font-size: .82rem; }
   .unit .u-badge { position: absolute; top: 6px; right: 7px; font-size: .8rem; }
   .prog-foot { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; justify-content: space-between; margin-top: 16px; font-size: .8rem; color: var(--muted); }
   .prog-legend .dot { display: inline-block; width: 11px; height: 11px; border-radius: 3px; vertical-align: middle; }
   .prog-legend .dot.done { background: #16a34a; } .prog-legend .dot.locked { background: var(--panel-2); }
   .prog-milestone { background: var(--panel); border: 1px solid var(--border); border-radius: 10px; padding: 7px 12px; color: var(--text); font-weight: 600; }
+  .lb-title { font-size: 1rem; margin: 22px 0 10px; } .lb-title .lb-sub { font-size: .76rem; color: var(--muted); font-weight: 400; }
+  .lb-row { display: flex; align-items: center; gap: 10px; padding: 9px 12px; border: 1px solid var(--border); border-radius: 10px; margin-bottom: 6px; background: var(--panel); font-size: .88rem; }
+  .lb-row.me { border-color: var(--accent); background: rgba(56,189,248,.08); }
+  .lb-row.out { margin-top: 8px; }
+  .lb-rank { width: 34px; text-align: center; font-weight: 700; }
+  .lb-name { flex: 1; font-weight: 600; }
+  .lb-you { font-size: .64rem; background: var(--accent); color: #06121f; border-radius: 6px; padding: 1px 6px; font-weight: 700; vertical-align: middle; }
+  .lb-score { color: var(--good); font-weight: 700; } .lb-score .lb-words { color: var(--muted); font-weight: 400; font-size: .76rem; }
+  .lb-empty { color: var(--muted); font-size: .85rem; padding: 10px; }
   .prog-readings { margin-top: 16px; background: var(--panel); border: 1px solid var(--border); border-radius: 12px; padding: 12px 14px; cursor: pointer; }
   .prog-readings .pr-top { display: flex; justify-content: space-between; align-items: baseline; font-size: .85rem; margin-bottom: 8px; }
   .prog-readings .pr-top b { color: var(--text); } .prog-readings .pr-count { color: var(--easy); font-weight: 800; }
   .prog-readings .pr-bar { height: 8px; border-radius: 999px; background: var(--bg); overflow: hidden; }
   .prog-readings .pr-fill { height: 100%; background: var(--easy); width: 0%; transition: width .3s; }
   .prog-readings .pr-next { font-size: .75rem; color: var(--muted); margin-top: 6px; }
+  /* call-ready */
+  .lb-row { display: flex; align-items: center; gap: 8px; }
+  .call-toggle { display: flex; align-items: center; gap: 10px; background: var(--panel); border: 1px solid var(--border); border-radius: 10px; padding: 10px 14px; margin-bottom: 14px; font-size: .85rem; }
+  .call-toggle label { display: flex; align-items: center; gap: 8px; cursor: pointer; flex: 1; }
+  .call-switch { position: relative; width: 38px; height: 22px; flex: none; }
+  .call-switch input { opacity: 0; width: 0; height: 0; }
+  .call-switch .slider { position: absolute; inset: 0; background: var(--panel-2); border-radius: 22px; transition: background .2s; cursor: pointer; }
+  .call-switch .slider:before { content: ''; position: absolute; left: 3px; top: 3px; width: 16px; height: 16px; background: #fff; border-radius: 50%; transition: transform .2s; }
+  .call-switch input:checked + .slider { background: var(--good); }
+  .call-switch input:checked + .slider:before { transform: translateX(16px); }
+  .call-badge { font-size: .75rem; background: rgba(34,197,94,.15); color: var(--good); border: 1px solid var(--good); border-radius: 999px; padding: 1px 7px; white-space: nowrap; }
+  .lb-call-btn { background: none; border: 1px solid var(--accent); color: var(--accent); border-radius: 8px; padding: 3px 10px; font-size: .75rem; cursor: pointer; white-space: nowrap; transition: background .15s; }
+  .lb-call-btn:hover { background: rgba(56,189,248,.12); }
   /* readings */
   .read-card { display: flex; align-items: center; gap: 12px; border: 1px solid var(--border); border-radius: 12px; padding: 13px 15px; margin-bottom: 10px; }
   .read-card .r-ico { font-size: 1.3rem; flex: none; }
@@ -179,6 +221,16 @@
   .story h1, .story h2, .story h3 { color: var(--accent); margin: .6em 0 .3em; }
   .story p { margin: 0 0 .8em; } .story code { background: var(--bg); padding: 1px 5px; border-radius: 4px; }
   .story .close-x { float: right; background: var(--panel-2); color: var(--text); border: none; border-radius: 8px; padding: 4px 10px; cursor: pointer; }
+  /* AI generation loading animation */
+  .ai-loading { display: flex; flex-direction: column; align-items: center; gap: 18px; padding: 32px 16px; }
+  .ai-loading .ai-logo { width: 64px; height: 64px; animation: ai-spin 1.4s linear infinite; }
+  @keyframes ai-spin { to { transform: rotate(360deg); } }
+  .ai-loading .ai-dots span { display: inline-block; width: 7px; height: 7px; border-radius: 50%; background: var(--accent); margin: 0 3px; animation: ai-bounce 1.1s ease-in-out infinite; }
+  .ai-loading .ai-dots span:nth-child(2) { animation-delay: .18s; }
+  .ai-loading .ai-dots span:nth-child(3) { animation-delay: .36s; }
+  @keyframes ai-bounce { 0%,80%,100% { transform: scale(.6); opacity:.4; } 40% { transform: scale(1); opacity:1; } }
+  .ai-loading p { color: var(--muted); font-size: .88rem; margin: 0; text-align: center; line-height: 1.5; }
+
   #app-toast { position: fixed; left: 50%; bottom: 26px; transform: translateX(-50%) translateY(20px); background: var(--panel-2); color: var(--text); border: 1px solid var(--border); border-radius: 10px; padding: 10px 16px; font-size: .85rem; box-shadow: 0 6px 24px rgba(0,0,0,.4); opacity: 0; pointer-events: none; transition: opacity .2s, transform .2s; z-index: 100; max-width: 90vw; }
   #app-toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
   /* login gate */
@@ -190,6 +242,7 @@
   .gate-alt { width: 100%; margin-top: 10px; background: none; color: var(--text); border: 1px solid var(--border); border-radius: 10px; padding: 11px; cursor: pointer; font-size: .9rem; }
   .gate-google { display: block; margin-top: 14px; color: var(--accent); text-decoration: none; font-size: .85rem; }
   .gate-google:hover { text-decoration: underline; }
+  #gate-invite { background: rgba(56,189,248,.12); border: 1px solid var(--accent); color: var(--text); border-radius: 10px; padding: 10px 12px; font-size: .88rem; margin: 6px 0 12px; }
 
   /* ===== redesign ===== */
   .hamburger { background: none; border: none; cursor: pointer; padding: 6px 6px 6px 0; display: flex; flex-direction: column; gap: 4px; }
@@ -204,8 +257,27 @@
   .avatar img { width: 100%; height: 100%; object-fit: cover; }
   /* segmented nav */
   .nav-tabs { display: flex; gap: 4px; background: var(--panel); padding: 4px; border-radius: 12px; }
-  .nav-tab { flex: 1; text-align: center; padding: 8px 0; font-size: .82rem; font-weight: 600; color: var(--muted); cursor: pointer; border-radius: 8px; border: none; background: none; text-decoration: none; transition: background .2s, color .2s; }
+  .nav-tab { flex: 1; text-align: center; padding: 8px 2px; font-size: .78rem; font-weight: 600; color: var(--muted); cursor: pointer; border-radius: 8px; border: none; background: none; text-decoration: none; transition: background .2s, color .2s; white-space: nowrap; }
   .nav-tab.active { background: var(--bg); color: var(--text); box-shadow: 0 4px 6px -1px rgba(0,0,0,.25); }
+  /* inbox bell */
+  .inbox-bell { position: relative; background: none; border: none; cursor: pointer; font-size: 1.2rem; padding: 4px; line-height: 1; border-radius: 8px; transition: background .15s; }
+  .inbox-bell:hover { background: var(--panel-2); }
+  .inbox-badge { position: absolute; top: 0; right: 0; background: #ef4444; color: #fff; border-radius: 999px; font-size: .55rem; font-weight: 800; min-width: 15px; height: 15px; line-height: 15px; padding: 0 3px; text-align: center; pointer-events: none; }
+  /* inbox popup */
+  .inbox-overlay { position: fixed; inset: 0; z-index: 90; }
+  .inbox-popup { position: fixed; top: 62px; right: 12px; width: 340px; max-width: calc(100vw - 24px); max-height: 480px; background: var(--panel); border: 1px solid var(--border); border-radius: 14px; box-shadow: 0 8px 32px rgba(0,0,0,.45); z-index: 91; display: flex; flex-direction: column; overflow: hidden; }
+  .inbox-popup-head { display: flex; align-items: center; justify-content: space-between; padding: 12px 14px; border-bottom: 1px solid var(--border); flex-shrink: 0; }
+  #inbox-list { overflow-y: auto; padding: 8px; flex: 1; }
+  .inbox-msg { display: flex; gap: 10px; align-items: flex-start; border-radius: 10px; padding: 10px 12px; margin-bottom: 4px; cursor: pointer; transition: background .15s; }
+  .inbox-msg:hover { background: var(--panel-2); }
+  .inbox-msg.unread { background: color-mix(in srgb, var(--panel) 70%, var(--accent) 30%); }
+  .inbox-msg.unread:hover { background: color-mix(in srgb, var(--panel) 60%, var(--accent) 40%); }
+  .inbox-msg .msg-icon { font-size: 1.3rem; flex-shrink: 0; margin-top: 1px; }
+  .inbox-msg .msg-body { flex: 1; min-width: 0; }
+  .inbox-msg .msg-subject { font-weight: 700; font-size: .85rem; margin-bottom: 2px; display: flex; align-items: center; gap: 5px; }
+  .inbox-msg .msg-subject .unread-dot { width: 7px; height: 7px; border-radius: 50%; background: var(--accent); flex-shrink: 0; }
+  .inbox-msg .msg-text { font-size: .78rem; color: var(--muted); line-height: 1.4; }
+  .inbox-msg .msg-time { font-size: .68rem; color: var(--muted); margin-top: 3px; }
   /* drawer */
   .drawer-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,.5); z-index: 60; }
   .drawer-overlay.open { display: block; }
@@ -230,6 +302,82 @@
   .learn-top .track { flex: 1; display: flex; align-items: center; justify-content: space-between; gap: 8px; }
   .progress-bar > div { background: linear-gradient(90deg, #38bdf8, #6366f1); }
   .row-actions .primary { background: linear-gradient(135deg, #3b82f6, #6366f1); color: #fff; border: none; box-shadow: 0 4px 14px rgba(59,130,246,.32); }
+
+  /* ── games ── */
+  .games-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 14px; }
+  .game-card { background: var(--panel); border: 2px solid var(--border); border-radius: 16px; padding: 22px 14px; cursor: pointer; text-align: center; transition: border-color .2s, transform .15s, box-shadow .2s; }
+  .game-card:hover:not(:disabled) { border-color: var(--accent); transform: translateY(-3px); box-shadow: 0 8px 24px rgba(99,102,241,.18); }
+  .game-card:active:not(:disabled) { transform: translateY(0); }
+  .game-card.game-locked { opacity: .45; cursor: not-allowed; }
+  .game-icon { font-size: 2.2rem; margin-bottom: 8px; }
+  .game-name { font-weight: 700; font-size: .95rem; margin-bottom: 4px; }
+  .game-desc { font-size: .75rem; color: var(--muted); }
+
+  /* hangman */
+  .hangman-wrap { display: flex; flex-direction: column; gap: 20px; }
+  @media (min-width: 560px) {
+    .hangman-wrap { flex-direction: row; align-items: flex-start; gap: 28px; }
+    .hangman-drawing { order: 2; }
+    .hangman-right  { order: 1; }
+  }
+  .hangman-drawing { flex-shrink: 0; color: var(--text); align-self: center; }
+  .hangman-right { flex: 1; min-width: 0; }
+  .hm-word { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 4px; }
+  .hm-letter { min-width: 28px; height: 38px; border-bottom: 3px solid var(--text); display: flex; align-items: center; justify-content: center; font-size: 1.3rem; font-weight: 700; padding: 0 2px; }
+  .hm-keyboard { display: flex; flex-wrap: wrap; gap: 5px; }
+  .hm-key { width: 34px; height: 34px; border: 1.5px solid var(--border); border-radius: 8px; background: var(--panel); font-size: .82rem; font-weight: 600; cursor: pointer; transition: background .15s, opacity .15s; }
+  .hm-key:hover:not(:disabled) { background: var(--accent); color: #fff; }
+  .hm-key:disabled { opacity: .3; cursor: default; }
+  .hm-key.correct { background: #22c55e; color: #fff; border-color: #22c55e; }
+  .hm-key.wrong   { background: #ef4444; color: #fff; border-color: #ef4444; }
+
+  /* ── cloze game ── */
+  .cloze-card { background: var(--panel); border: 1px solid var(--border); border-radius: 16px; padding: 24px 20px; }
+  .cloze-word-label { font-size: .78rem; color: var(--muted); margin-bottom: 6px; text-transform: uppercase; letter-spacing: .05em; }
+  .cloze-sentence { font-size: 1.25rem; font-weight: 600; line-height: 1.6; margin-bottom: 8px; }
+  .cloze-blank { display: inline-block; min-width: 80px; border-bottom: 3px solid var(--accent); color: var(--accent); font-weight: 700; text-align: center; padding: 0 4px; transition: color .2s, border-color .2s; }
+  .cloze-blank.correct { color: #22c55e; border-color: #22c55e; }
+  .cloze-blank.wrong   { color: #ef4444; border-color: #ef4444; animation: cloze-shake .3s; }
+  @keyframes cloze-shake { 0%,100%{transform:translateX(0)} 25%{transform:translateX(-6px)} 75%{transform:translateX(6px)} }
+  .cloze-translation { font-size: .88rem; color: var(--muted); margin-bottom: 14px; min-height: 20px; }
+  .cloze-attempts { font-size: .82rem; color: var(--muted); margin-bottom: 12px; min-height: 18px; }
+  .cloze-options { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+  .cloze-opt { padding: 12px 10px; border: 2px solid var(--border); border-radius: 12px; background: var(--bg); font-size: .95rem; font-weight: 600; cursor: pointer; transition: border-color .15s, background .15s, transform .1s; text-align: center; }
+  .cloze-opt:hover:not(:disabled) { border-color: var(--accent); background: var(--panel); transform: translateY(-1px); }
+  .cloze-opt:disabled { cursor: default; }
+  .cloze-opt.correct { border-color: #22c55e; background: rgba(34,197,94,.12); color: #16a34a; }
+  .cloze-opt.wrong   { border-color: #ef4444; background: rgba(239,68,68,.1);  color: #dc2626; }
+  .cloze-opt.dim     { opacity: .35; }
+
+  /* ── incoming call ring banner ── */
+  #ring-banner {
+    position: fixed; top: 16px; left: 50%; transform: translateX(-50%);
+    z-index: 10000; background: #1e293b; color: #fff;
+    border: 2px solid #38bdf8; border-radius: 14px;
+    padding: 12px 20px; display: flex; align-items: center; gap: 14px;
+    box-shadow: 0 8px 32px rgba(0,0,0,.5);
+    animation: ring-slide-in .3s ease;
+  }
+  @keyframes ring-slide-in { from { opacity:0; top:0; } to { opacity:1; top:16px; } }
+  #ring-text { font-weight: 600; font-size: 1rem; }
+
+  /* ── call modal ── */
+  #call-modal {
+    position: fixed; inset: 0; z-index: 9999;
+    background: #000;
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+    gap: 12px;
+  }
+  .call-videos { position: relative; width: 100%; max-width: 900px; aspect-ratio: 16/9; background: #111; border-radius: 12px; overflow: hidden; }
+  #remote-video { width: 100%; height: 100%; object-fit: cover; }
+  #local-video  { position: absolute; bottom: 12px; right: 12px; width: 160px; border-radius: 8px; border: 2px solid #fff3; object-fit: cover; }
+  .call-status-bar { color: #ccc; font-size: .9rem; }
+  .call-controls { display: flex; gap: 16px; }
+  .call-ctrl { font-size: 1.5rem; background: rgba(255,255,255,.15); border: none; color: #fff; border-radius: 50%; width: 56px; height: 56px; cursor: pointer; transition: background .15s; }
+  .call-ctrl:hover { background: rgba(255,255,255,.28); }
+  .call-ctrl.muted { background: rgba(239,68,68,.5); }
+  .call-ctrl.hangup { background: #ef4444; }
+  .call-ctrl.hangup:hover { background: #dc2626; }
 </style>
 </head>
 <body>
@@ -244,7 +392,8 @@
     <button data-view="learn" class="nav-tab active">Words</button>
     <button data-view="reading" class="nav-tab">Reading</button>
     <button data-view="progress" class="nav-tab">Progress</button>
-    <a class="nav-tab nav-link" href="/grammar">Grammar</a>
+    <button data-view="leaderboard" class="nav-tab">Leaderboard</button>
+    <button data-view="games" class="nav-tab">🎮 Games</button>
   </nav>
 </header>
 
@@ -258,6 +407,7 @@
   <div class="drawer-user" id="drawer-user"></div>
   <nav class="drawer-nav">
     <button class="drawer-item" data-act="buy">🪙 Buy tokens</button>
+    <button class="drawer-item" data-act="invite">🎁 Invite friends</button>
     <button class="drawer-item" data-act="settings">⚙︎ Career &amp; settings</button>
     <a class="drawer-item" href="/grammar">📖 Grammar</a>
     <div class="drawer-sep admin-only" id="nav-add-sep" style="display:none">Admin</div>
@@ -287,7 +437,7 @@
       <div class="prog-avatar" id="prog-avatar"></div>
       <div class="prog-meta">
         <div class="prog-user">USER: <b id="prog-user"></b></div>
-        <div class="prog-sub"><span id="prog-level"></span> · <span id="prog-unlocked"></span></div>
+        <div class="prog-sub"><span id="prog-level"></span> · <span id="prog-unlocked"></span> · <span id="prog-score">⭐ 0 pts</span></div>
         <div class="progress-bar"><div id="prog-fill" style="width:0%"></div></div>
       </div>
       <div class="prog-pct" id="prog-pct">0%</div>
@@ -297,6 +447,115 @@
     <div class="prog-foot">
       <div class="prog-legend"><span class="dot done"></span> Unlocked &nbsp; <span class="dot locked"></span> Locked</div>
       <div class="prog-milestone" id="prog-milestone"></div>
+    </div>
+  </section>
+
+  <!-- LEADERBOARD -->
+  <section id="leaderboard" class="view">
+    <h2 style="margin:4px 0 4px">🏆 Leaderboard</h2>
+    <p style="color:var(--muted);font-size:.82rem;margin:0 0 14px">Top learners ranked by words mastered.</p>
+    <div class="call-toggle" id="call-toggle-wrap">
+      <label>
+        <span class="call-switch"><input type="checkbox" id="call-ready-chk"><span class="slider"></span></span>
+        <span>Available for speaking practice 📞</span>
+      </label>
+      <span id="call-cost-note" style="color:var(--muted);font-size:.78rem"></span>
+    </div>
+    <div id="leaderboard-list"></div>
+  </section>
+
+  <!-- GAMES -->
+  <section id="games" class="view">
+    <div id="games-lobby">
+      <h2 style="margin:4px 0 4px">🎮 Games</h2>
+      <p style="color:var(--muted);font-size:.82rem;margin:0 0 18px">Practice German through play.</p>
+      <div class="games-grid">
+        <button class="game-card" data-game="hangman">
+          <div class="game-icon">🪓</div>
+          <div class="game-name">Hangman</div>
+          <div class="game-desc">Guess the German word letter by letter</div>
+        </button>
+        <button class="game-card" data-game="cloze">
+          <div class="game-icon">✏️</div>
+          <div class="game-name">Cloze</div>
+          <div class="game-desc">Fill in the missing word in a sentence</div>
+        </button>
+        <button class="game-card game-locked" disabled>
+          <div class="game-icon">⚡</div>
+          <div class="game-name">Speed Quiz</div>
+          <div class="game-desc">Coming soon</div>
+        </button>
+      </div>
+    </div>
+
+    <!-- HANGMAN GAME -->
+    <div id="hangman-game" style="display:none">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;flex-wrap:wrap;gap:8px">
+        <button class="ghost" id="hangman-back">← Back to Games</button>
+        <span id="hm-score-bar" style="font-weight:700;font-size:.95rem">Session score: ⭐ 0</span>
+      </div>
+      <div class="hangman-wrap">
+        <div class="hangman-drawing">
+          <svg id="hangman-svg" viewBox="0 0 120 160" width="90" height="120" style="max-width:100%">
+            <!-- Gallows -->
+            <line x1="10" y1="155" x2="110" y2="155" stroke="currentColor" stroke-width="4" stroke-linecap="round"/>
+            <line x1="30" y1="155" x2="30" y2="5"   stroke="currentColor" stroke-width="4" stroke-linecap="round"/>
+            <line x1="30" y1="5"   x2="80" y2="5"   stroke="currentColor" stroke-width="4" stroke-linecap="round"/>
+            <line x1="80" y1="5"   x2="80" y2="25"  stroke="currentColor" stroke-width="4" stroke-linecap="round"/>
+            <!-- Body parts (hidden by default) -->
+            <circle id="hm-head" cx="80" cy="38" r="13" stroke="currentColor" stroke-width="3" fill="none" style="display:none"/>
+            <line id="hm-body"   x1="80" y1="51" x2="80" y2="100" stroke="currentColor" stroke-width="3" stroke-linecap="round" style="display:none"/>
+            <line id="hm-arm-l"  x1="80" y1="65" x2="55" y2="85" stroke="currentColor" stroke-width="3" stroke-linecap="round" style="display:none"/>
+            <line id="hm-arm-r"  x1="80" y1="65" x2="105" y2="85" stroke="currentColor" stroke-width="3" stroke-linecap="round" style="display:none"/>
+            <line id="hm-leg-l"  x1="80" y1="100" x2="55" y2="130" stroke="currentColor" stroke-width="3" stroke-linecap="round" style="display:none"/>
+            <line id="hm-leg-r"  x1="80" y1="100" x2="105" y2="130" stroke="currentColor" stroke-width="3" stroke-linecap="round" style="display:none"/>
+          </svg>
+        </div>
+        <div class="hangman-right">
+          <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px">
+            <div id="hm-hint" style="color:var(--muted);font-size:.8rem;flex:1"></div>
+            <button id="hm-tip-btn" title="Show a hint sentence" style="background:none;border:1.5px solid var(--border);border-radius:50%;width:28px;height:28px;font-size:.9rem;cursor:pointer;flex-shrink:0;display:flex;align-items:center;justify-content:center;color:var(--muted);transition:border-color .15s,color .15s">💡</button>
+          </div>
+          <div id="hm-tip-popup" style="display:none;background:var(--panel);border:1px solid var(--border);border-radius:10px;padding:10px 12px;font-size:.85rem;color:var(--text);margin-bottom:10px;line-height:1.5;position:relative">
+            <button id="hm-tip-close" style="position:absolute;top:6px;right:8px;background:none;border:none;cursor:pointer;font-size:.9rem;color:var(--muted)">✕</button>
+            <div id="hm-tip-text"></div>
+          </div>
+          <div id="hm-word" class="hm-word"></div>
+          <div id="hm-translation" style="color:var(--muted);font-size:.85rem;margin:8px 0 16px;min-height:20px"></div>
+          <div id="hm-keyboard" class="hm-keyboard"></div>
+          <div id="hm-result" style="display:none;margin-top:16px;text-align:center">
+            <div id="hm-result-msg" style="font-size:1.4rem;font-weight:700;margin-bottom:10px"></div>
+            <button class="primary" id="hm-next">Next word →</button>
+          </div>
+          <div style="color:var(--muted);font-size:.78rem;margin-top:14px;display:flex;gap:16px;flex-wrap:wrap">
+            <span>Wrong: <span id="hm-wrong-count">0</span> / 6</span>
+            <span>0 wrong → ⭐⭐⭐ &nbsp;|&nbsp; 1–2 → ⭐⭐ &nbsp;|&nbsp; 3–4 → ⭐ &nbsp;|&nbsp; 5+ → 💀</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- CLOZE GAME -->
+    <div id="cloze-game" style="display:none">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;flex-wrap:wrap;gap:8px">
+        <button class="ghost" id="cloze-back">← Back to Games</button>
+        <span id="cloze-score-bar" style="font-weight:700;font-size:.95rem">Session score: ⭐ 0</span>
+      </div>
+
+      <div class="cloze-card">
+        <div id="cloze-word-label" class="cloze-word-label"></div>
+        <div id="cloze-sentence" class="cloze-sentence"></div>
+        <div id="cloze-translation" class="cloze-translation"></div>
+        <div id="cloze-attempts" class="cloze-attempts"></div>
+        <div id="cloze-options" class="cloze-options"></div>
+        <div id="cloze-result" style="display:none;text-align:center;margin-top:16px">
+          <div id="cloze-result-msg" style="font-size:1.3rem;font-weight:700;margin-bottom:12px"></div>
+          <button class="primary" id="cloze-next">Next sentence →</button>
+        </div>
+        <div style="color:var(--muted);font-size:.78rem;margin-top:16px">
+          1st try → ⭐⭐⭐ &nbsp;|&nbsp; 2nd try → ⭐⭐ &nbsp;|&nbsp; 3rd try → ⭐ &nbsp;|&nbsp; all wrong → 💀
+        </div>
+      </div>
     </div>
   </section>
 
@@ -327,35 +586,96 @@
   <section id="add" class="view">
     <label class="fld">Target word (German)</label>
     <input class="fld" id="f-word" placeholder="die Bereitstellung">
-    <label class="fld">Category</label>
-    <input class="fld" id="f-cat" placeholder="devops" value="devops" list="cat-list">
+    <label class="fld">Topic <span style="color:var(--muted);font-weight:400">— admin label for browsing/filtering (e.g. kubernetes, networking)</span></label>
+    <input class="fld" id="f-cat" placeholder="kubernetes" value="general" list="cat-list">
     <datalist id="cat-list"></datalist>
     <label class="fld">CEFR level <span style="color:var(--muted);font-weight:400">— which learners study this word</span></label>
     <select class="fld" id="f-level"></select>
-    <label class="fld" style="margin-top:18px">Example sentences <span style="color:var(--muted);font-weight:400">— optional; if left empty, AI generates them per career</span></label>
+    <div style="display:flex;gap:8px">
+      <div style="flex:1"><label class="fld">Lemma(s)</label><input class="fld" id="f-lemma" placeholder="übrig"></div>
+      <div style="flex:1"><label class="fld">Part of speech</label><input class="fld" id="f-pos" placeholder="Adjektiv"></div>
+    </div>
+    <div style="display:flex;gap:8px">
+      <div style="width:120px"><label class="fld">Article</label><input class="fld" id="f-article" placeholder="der / die / das"></div>
+      <div style="flex:1"><label class="fld">Reference URL</label><input class="fld" id="f-url" placeholder="https://www.dwds.de/wb/…"></div>
+    </div>
+    <label class="fld" style="margin-top:14px">Meanings <span style="color:var(--muted);font-weight:400">— one per line, e.g. "deployment", "provision"</span></label>
+    <textarea class="fld" id="f-meanings" rows="3" placeholder="deployment&#10;provision&#10;rollout" style="font-size:.88rem"></textarea>
+    <label class="fld" style="margin-top:14px">Example sentences <span style="color:var(--muted);font-weight:400">— optional; if left empty, AI generates them per career</span></label>
     <div id="sent-list"></div>
     <button class="ghost" id="add-sent-row">+ Add another sentence</button>
     <button class="primaryw" id="f-save">Save word</button>
     <div class="toast" id="add-toast"></div>
+
+    <hr style="border:none;border-top:1px solid var(--border);margin:26px 0 18px">
+    <h3 id="unit-form-title" style="margin:0 0 10px">📦 Units (token-gated packs)</h3>
+    <div id="unit-list" style="margin-bottom:14px"></div>
+    <input class="fld" id="unit-title" placeholder="Unit title (e.g. At the office)">
+    <div style="display:flex;gap:8px">
+      <select class="fld" id="unit-level" style="flex:1"></select>
+      <input class="fld" id="unit-cost" type="number" min="0" value="0" title="Token cost" placeholder="Tokens" style="width:100px">
+      <input class="fld" id="unit-score" type="number" min="0" value="6" title="Quiz score reward" placeholder="Score" style="width:80px">
+      <input class="fld" id="unit-pos" type="number" value="0" title="Order" style="width:80px" placeholder="Order">
+    </div>
+    <label class="fld" style="margin-top:8px">Words in this unit <span style="color:var(--muted);font-weight:400">— pick from the selected level</span></label>
+    <div id="unit-words" class="unit-words"></div>
+    <button class="primaryw" id="unit-save">Save unit</button>
+    <button class="ghost" id="unit-cancel" style="display:none">Cancel</button>
+    <div class="toast" id="unit-toast"></div>
   </section>
 
   <!-- BROWSE -->
   <section id="browse" class="view">
-    <div class="filter-row"><select id="browse-cat"><option value="all">All categories</option></select>
+    <div class="filter-row"><select id="browse-cat"><option value="all">All topics</option></select>
       <label id="browse-all-wrap" class="hidden" style="margin-left:auto;font-size:.85rem;display:flex;align-items:center;gap:.35rem"><input type="checkbox" id="browse-all"> Show all (admin)</label>
     </div>
     <div id="browse-list"></div>
   </section>
+
 </main>
+
+<!-- Incoming call ring banner -->
+<div id="ring-banner" style="display:none">
+  <span id="ring-text">📞 Incoming call</span>
+  <button id="ring-accept" class="primary" style="padding:6px 18px">Accept</button>
+  <button id="ring-decline" class="ghost"   style="padding:6px 14px">Decline</button>
+</div>
+
+<!-- Call modal -->
+<div id="call-modal" style="display:none">
+  <div class="call-videos">
+    <video id="remote-video" autoplay playsinline></video>
+    <video id="local-video"  autoplay playsinline muted></video>
+  </div>
+  <div class="call-status-bar">
+    <span id="call-status">Connecting…</span>
+  </div>
+  <div class="call-controls">
+    <button class="call-ctrl" id="mute-btn"   title="Mute mic">🎤</button>
+    <button class="call-ctrl" id="cam-btn"    title="Toggle camera">📷</button>
+    <button class="call-ctrl hangup" id="hangup-btn" title="Hang up">📵</button>
+  </div>
+</div>
+
+<!-- Inbox popup -->
+<div id="inbox-overlay" class="inbox-overlay" style="display:none"></div>
+<div id="inbox-popup" class="inbox-popup" style="display:none">
+  <div class="inbox-popup-head">
+    <span style="font-weight:700;font-size:.95rem">Inbox</span>
+    <button class="ghost" id="inbox-read-all" style="font-size:.75rem;padding:4px 10px">Mark all read</button>
+  </div>
+  <div id="inbox-list"></div>
+</div>
 
 <!-- LOGIN GATE (shown until the user signs in) -->
 <div id="gate">
   <div class="gate-card">
     <img src="/favicon.svg" alt="" class="gate-logo">
     <h1>German Flashcards</h1>
-    <p>Learn German vocabulary in context — tailored to your career and level. Sign in to start.</p>
-    <button class="primaryw" id="gate-login">Log in</button>
-    <button class="gate-alt" id="gate-signup">Create an account</button>
+    <div id="gate-invite" style="display:none"></div>
+    <p id="gate-sub">Learn German vocabulary in context — tailored to your career and level. Sign in to start.</p>
+    <button class="primaryw" id="gate-signup">Create an account</button>
+    <button class="gate-alt" id="gate-login">Log in</button>
     <a class="gate-google" id="gate-google" href="/auth/google">Continue with Google</a>
   </div>
 </div>
@@ -367,13 +687,11 @@
     <h2 id="onb-title">Welcome! Let's personalize your learning</h2>
     <div class="sub">A few quick questions so we show the right words for you.</div>
     <label>Your role / career track</label>
-    <input id="onb-career" list="career-list" placeholder="e.g. Backend Developer" autocomplete="off">
-    <datalist id="career-list"></datalist>
+    <select id="onb-career-select" class="fld"></select>
+    <input id="onb-career" placeholder="e.g. Backend Developer" autocomplete="off" style="display:none;margin-top:8px">
     <div class="sub" style="margin-top:4px">Pick one or type your own.</div>
     <label>Your current German level</label>
     <select id="onb-level"></select>
-    <label>How many words per lesson?</label>
-    <select id="onb-goal"></select>
     <button class="submit" id="onb-save">Start learning</button>
   </div>
 </div>
@@ -396,6 +714,19 @@
     <div class="switch" id="am-switch"></div>
     <div class="or" id="am-or">— or —</div>
     <a class="google" id="am-google" href="/auth/google">Continue with Google</a>
+  </div>
+</div>
+
+<!-- INVITE FRIENDS MODAL -->
+<div class="modal" id="invite-modal">
+  <div class="modal-card">
+    <button class="close" id="invite-close">✕</button>
+    <h2>🎁 Invite friends</h2>
+    <p class="sub" id="invite-sub">Share your link — earn tokens when friends join.</p>
+    <label>Your invite link</label>
+    <input id="invite-link" readonly value="Loading…">
+    <button class="submit" id="invite-copy">Copy link</button>
+    <div id="invite-stats" style="text-align:center;color:var(--muted);font-size:.85rem;margin-top:14px"></div>
   </div>
 </div>
 
@@ -442,7 +773,6 @@ const CAREERS = {
   general: { label: 'General / All topics',  cats: null },
 };
 const LEVELS = ['A1', 'A2', 'B1', 'B2', 'C1', 'C2'];
-const GOALS = [5, 10, 15, 20];
 const PASS_PCT = 80;
 
 let DECK = [];
@@ -450,6 +780,7 @@ let ME = { google_enabled: false, ai_enabled: false, user: null };
 let NOTES = {};                     // { wordId: private note }
 const isAdmin = () => !!(ME.user && ME.user.is_admin);
 let PROFILE = null;                 // { career, level, daily_goal }
+let USER_SCORE = 0;                 // total score earned across all units
 let LEARN = { learned: [], wrong: {} };
 // learn-view runtime state
 let phase = 'study';                // study | quiz | result | done
@@ -497,6 +828,18 @@ async function mergeGuestProfile() {
   localStorage.removeItem(PROFILE_KEY); localStorage.removeItem(LEARN_KEY);
 }
 
+function aiLoadingHTML(msg) {
+  return `<div class="ai-loading">
+    <svg class="ai-logo" viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <circle cx="32" cy="32" r="28" stroke="var(--accent)" stroke-width="4" stroke-dasharray="44 88" stroke-linecap="round"/>
+      <circle cx="32" cy="32" r="16" stroke="var(--hard)" stroke-width="3" stroke-dasharray="20 52" stroke-linecap="round" style="animation-direction:reverse;animation:ai-spin 0.9s linear infinite"/>
+      <circle cx="32" cy="32" r="5" fill="var(--accent)"/>
+    </svg>
+    <div class="ai-dots"><span></span><span></span><span></span></div>
+    <p>${msg}</p>
+  </div>`;
+}
+
 // -------- deck helpers --------
 const careerStr = () => (PROFILE?.career || 'General').trim();
 async function loadDeck() { DECK = await api('/api/words?career=' + encodeURIComponent(careerStr())); }
@@ -541,7 +884,7 @@ async function ensureAllReady(words) {
   startCareerGeneration(words);
   await Promise.all(words.map(w => genPromises[w.id]).filter(Boolean));
 }
-function allCategories() { return [...new Set(DECK.map(w => w.category))]; }
+function allCategories() { return [...new Set(DECK.map(w => w.topic))]; }
 function careerLabel() { const c = (PROFILE?.career || '').trim(); return CAREERS[c]?.label || c || 'All topics'; }
 function careerCats() {
   const c = (PROFILE?.career || '').trim();
@@ -557,7 +900,7 @@ function studyDeck() {
   return DECK.filter(w => w.level === lvl && (w.sentences.length || ME.ai_enabled))
              .sort((a, b) => a.id - b.id);
 }
-const goal = () => (PROFILE?.daily_goal) || 10;
+const goal = () => 10;
 const learnedSet = () => new Set((LEARN.learned || []).map(Number));
 function remainingWords() { const done = learnedSet(); return studyDeck().filter(w => !done.has(w.id)); }
 function mistakeWords() { return studyDeck().filter(w => (LEARN.wrong[w.id] || 0) > 0).sort((a, b) => (LEARN.wrong[b.id] || 0) - (LEARN.wrong[a.id] || 0)); }
@@ -566,6 +909,28 @@ function highlight(sentence, word) {
   try { return sentence.replace(new RegExp('(' + core + ')', 'i'), '<mark>$1</mark>'); } catch { return sentence; }
 }
 const randSentence = (w) => { const ss = sentencesFor(w); return ss[Math.floor(Math.random() * ss.length)]; };
+// Small dictionary-metadata line (POS · article · lemma).
+function wordMeta(w) {
+  const bits = [];
+  if (w.pos) bits.push(escapeHtml(w.pos));
+  if (w.article) bits.push(escapeHtml(w.article));
+  if (w.lemma && w.lemma.toLowerCase() !== (w.word || '').toLowerCase()) bits.push('lemma: ' + escapeHtml(w.lemma));
+  return bits.length ? `<div class="w-meta">${bits.join(' · ')}</div>` : '';
+}
+// Pronounce a word: prefer the admin-provided audio file (w.audio_url), else fall
+// back to browser text-to-speech.
+let _wordAudio = null;
+function playWord(w) {
+  if (w && w.audio_url) {
+    try {
+      if (_wordAudio) { _wordAudio.pause(); }
+      _wordAudio = new Audio(w.audio_url);
+      _wordAudio.play().catch(() => speak(w.word));
+      return;
+    } catch { /* fall through to TTS */ }
+  }
+  if (w) speak(w.word);
+}
 
 // ---- private notes (guest = localStorage, logged-in = server) ----
 async function loadNotes() { NOTES = loggedIn() ? await api('/api/notes') : loadGuest('fc_notes', {}); }
@@ -578,28 +943,66 @@ async function saveNote(id, text) {
 }
 
 // -------- onboarding / settings --------
+let CAREER_SUGGESTIONS = [];
+async function loadCareerSuggestions() {
+  try { CAREER_SUGGESTIONS = await api('/api/careers'); } catch { CAREER_SUGGESTIONS = []; }
+  fillCareerDatalist();
+}
+// Combo box options = preset tracks + every career previous users have entered.
+// The browser filters this <datalist> as you type (autocomplete).
+function fillCareerDatalist() {
+  const seen = new Set(), opts = [];
+  const add = (label) => { const k = (label || '').trim().toLowerCase(); if (k && !seen.has(k)) { seen.add(k); opts.push(label.trim()); } };
+  Object.values(CAREERS).forEach(v => add(v.label));   // presets first
+  (CAREER_SUGGESTIONS || []).forEach(add);             // then careers others filled in
+  const sel = $('#onb-career-select');
+  if (sel) {
+    const current = sel.value;
+    sel.innerHTML = opts.map(o => `<option value="${escapeHtml(o)}">${escapeHtml(o)}</option>`).join('')
+      + `<option value="__other__">Other (type your own)…</option>`;
+    if (current && [...sel.options].some(o => o.value === current)) sel.value = current;
+  }
+}
+function getCareerValue() {
+  const sel = $('#onb-career-select');
+  return sel && sel.value === '__other__' ? $('#onb-career').value.trim() : (sel ? sel.value : $('#onb-career').value.trim());
+}
+$('#onb-career-select').onchange = function() {
+  const other = this.value === '__other__';
+  $('#onb-career').style.display = other ? 'block' : 'none';
+  if (other) $('#onb-career').focus();
+};
 function fillOnbSelects() {
-  $('#career-list').innerHTML = Object.values(CAREERS).map(v => `<option value="${v.label}">`).join('');
+  fillCareerDatalist();
   $('#onb-level').innerHTML = LEVELS.map(l => `<option value="${l}">${l}</option>`).join('');
-  $('#onb-goal').innerHTML = GOALS.map(g => `<option value="${g}">${g} words</option>`).join('');
 }
 function openOnboarding(edit) {
   fillOnbSelects();
+  loadCareerSuggestions();   // refresh the list (in case new careers appeared)
   $('#onb-title').textContent = edit ? 'Your learning settings' : "Welcome! Let's personalize your learning";
   $('#onb-save').textContent = edit ? 'Save' : 'Start learning';
   $('#onb-close').style.display = edit ? 'block' : 'none';
-  if (PROFILE) { $('#onb-career').value = careerLabel(); $('#onb-level').value = PROFILE.level; $('#onb-goal').value = PROFILE.daily_goal; }
-  else { $('#onb-career').value = ''; $('#onb-level').value = 'B1'; $('#onb-goal').value = 10; }
+  if (PROFILE) {
+    const label = careerLabel();
+    const sel = $('#onb-career-select');
+    const match = sel && [...sel.options].find(o => o.value === label && o.value !== '__other__');
+    if (match) { sel.value = label; $('#onb-career').style.display = 'none'; }
+    else { sel.value = '__other__'; $('#onb-career').value = label; $('#onb-career').style.display = 'block'; }
+    $('#onb-level').value = PROFILE.level;
+  } else { $('#onb-career-select').value = $('#onb-career-select').options[0]?.value || ''; $('#onb-career').style.display = 'none'; $('#onb-level').value = 'B1'; }
   $('#onb-modal').style.display = 'flex';
 }
 $('#onb-close').onclick = () => { $('#onb-modal').style.display = 'none'; };
 $('#onb-save').onclick = async () => {
-  const career = $('#onb-career').value.trim() || 'General / All topics';
+  const career = getCareerValue() || 'General / All topics';
   const prevCareer = careerStr();
-  PROFILE = { career, level: $('#onb-level').value, daily_goal: parseInt($('#onb-goal').value, 10) };
+  PROFILE = { career, level: $('#onb-level').value, daily_goal: 10 };
   await saveProfile();
   $('#onb-modal').style.display = 'none';
-  if (careerStr() !== prevCareer) await loadDeck();  // re-fetch career-flavored sentences
+  try {
+    if (careerStr() !== prevCareer) await loadDeck();
+  } catch { /* deck load failed — continue anyway with whatever we have */ }
+  window._connectSSE?.();   // start SSE now that user is fully set up
   startLesson();
 };
 { const bs = $('#btn-settings'); if (bs) bs.onclick = () => openOnboarding(true); }  // settings now in the drawer
@@ -608,10 +1011,18 @@ $('#onb-save').onclick = async () => {
 function renderTopbar() {
   const deck = studyDeck(), done = learnedSet();
   const learnedCount = deck.filter(w => done.has(w.id)).length;
-  const pct = deck.length ? Math.round(learnedCount / deck.length * 100) : 0;
+  const units = progressUnits();
+  const currentUnit = units.find(u => !u.complete) || units[units.length - 1];
+  const unitLabel = currentUnit
+    ? (currentUnit.title ? escapeHtml(currentUnit.title) : `Unit ${units.indexOf(currentUnit) + 1}`)
+    : null;
+  const unitProgress = currentUnit ? `${currentUnit.learned}/${currentUnit.words.length}` : '';
+  const pct = currentUnit && currentUnit.words.length
+    ? Math.round(currentUnit.learned / currentUnit.words.length * 100)
+    : (deck.length ? Math.round(learnedCount / deck.length * 100) : 0);
   $('#track-info').innerHTML = `<span class="track-tags"><span class="tag tag-track">${escapeHtml(careerLabel())}</span><span class="tag tag-level">${escapeHtml(PROFILE?.level || 'B1')}</span></span>`
-    + `<span class="progress-text"><b>${learnedCount}</b>/${deck.length} words learned</span>`;
-  $('#track-info').title = 'Change your career, level or daily goal';
+    + (unitLabel ? `<span class="progress-text">${unitLabel} · <b>${unitProgress}</b></span>` : `<span class="progress-text"><b>${learnedCount}</b>/${deck.length} words learned</span>`);
+  $('#track-info').title = 'Change your career or level';
   $('#track-info').onclick = () => openOnboarding(true);
   $('#track-fill').style.width = pct + '%';
   const m = mistakeWords().length;
@@ -643,7 +1054,8 @@ function resumeLesson() {
   return { words, idx: Math.min(saved.idx || 0, words.length - 1), phase: saved.phase || 'study' };
 }
 
-async function startLesson() { await beginLesson(remainingWords().slice(0, goal())); }
+let currentUnitId = null;  // set when a unit lesson is started; null for free lessons
+async function startLesson() { currentUnitId = null; await beginLesson(remainingWords().slice(0, goal())); }
 // Run the study→quiz flow over a specific set of words (a lesson or a unit),
 // optionally starting at a given word index (used to resume after a refresh).
 async function beginLesson(words, startIdx = 0) {
@@ -659,7 +1071,7 @@ async function beginLesson(words, startIdx = 0) {
   const first = lesson[studyIdx];
   if (genPromises[first.id]) {      // wait only for the word we're about to show
     if (!first.has_career_sentences)  // only show the spinner when truly generating
-      $('#learn-area').innerHTML = `<div class="empty"><div class="big">✨</div>Preparing your example for <b>${escapeHtml(careerStr())}</b>…</div>`;
+      $('#learn-area').innerHTML = aiLoadingHTML(`Preparing your example for <b>${escapeHtml(careerStr())}</b>…`);
     await ensureWordReady(first);
   }
   // If that word still has no usable example (AI off/failed/out of tokens), say so.
@@ -697,7 +1109,7 @@ function renderStudy() {
     <div style="font-size:.8rem;color:var(--muted);margin-bottom:8px">Study · word ${studyIdx + 1} of ${lesson.length}</div>
     <div class="card">
       <div class="sentence">${highlight(escapeHtml(studySentence.sentence_de), w.word)}</div>
-      ${studyRevealed ? `<div class="answer"><div class="word" id="speak-word" title="Click to hear the word">${escapeHtml(w.word)}${speechOK ? ' <span class="speak-ico">🔊</span>' : ''}</div><div class="trans">${escapeHtml(studySentence.sentence_en)}</div></div>`
+      ${studyRevealed ? `<div class="answer"><div class="word" style="position:relative;display:inline-block"><span id="speak-word" title="Click to hear the word" style="cursor:pointer">${escapeHtml(w.word)}${speechOK ? ' <span class="speak-ico">🔊</span>' : ''}</span>${(w.meanings||[]).length ? ` <button class="tip-btn" id="tip-btn" title="Show meanings">💡</button><div class="tip-popup" id="tip-popup" style="display:none"><button class="tip-popup-close" id="tip-close">✕</button><div>${(w.meanings).map((m,i)=>`<div><b>${i+1}.</b> ${escapeHtml(m)}</div>`).join('')}</div></div>` : ''}</div>${wordMeta(w)}<div class="trans">${escapeHtml(studySentence.sentence_en)}</div></div>`
         : `<div class="hint">Tap to reveal the meaning</div>`}
     </div>
     <div class="row-actions">
@@ -711,7 +1123,30 @@ function renderStudy() {
       <textarea class="fld" id="note-input" placeholder="A reminder only you can see — a mnemonic, a tricky meaning…">${escapeHtml(getNote(w.id))}</textarea>
     </div>`;
   $('.card').onclick = () => { if (!studyRevealed) { studyRevealed = true; renderStudy(); } };
-  if ($('#speak-word')) $('#speak-word').onclick = (e) => { e.stopPropagation(); speak(w.word); };
+  if ($('#speak-word')) $('#speak-word').onclick = (e) => { e.stopPropagation(); playWord(w); };
+  if ($('#tip-btn')) {
+    $('#tip-btn').onclick = (e) => {
+      e.stopPropagation();
+      const p = $('#tip-popup');
+      if (p.style.display !== 'none') { p.style.display = 'none'; return; }
+      p.style.display = 'block';
+      // Position below the button, clamped to viewport
+      const r = e.currentTarget.getBoundingClientRect();
+      const pw = p.offsetWidth || 280;
+      let left = r.left + r.width / 2 - pw / 2;
+      left = Math.max(8, Math.min(left, window.innerWidth - pw - 8));
+      p.style.left = left + 'px';
+      p.style.top = (r.bottom + 8) + 'px';
+    };
+    $('#tip-close').onclick = (e) => { e.stopPropagation(); $('#tip-popup').style.display = 'none'; };
+    document.addEventListener('click', function closeTip(e) {
+      if (!$('#tip-popup')) { document.removeEventListener('click', closeTip); return; }
+      if (!$('#tip-btn').contains(e.target) && !$('#tip-popup').contains(e.target)) {
+        $('#tip-popup').style.display = 'none';
+      }
+    });
+  }
+  $('#learn-area').querySelectorAll('.word-link').forEach(el => el.addEventListener('click', (e) => e.stopPropagation()));
   $('#note-input').addEventListener('change', (e) => saveNote(w.id, e.target.value));
   if ($('#study-prev')) $('#study-prev').onclick = () => {
     saveNote(w.id, $('#note-input').value);
@@ -731,18 +1166,23 @@ function renderStudy() {
 }
 
 const hasCareerSentence = (w) => w.sentences.some(s => s.career === careerStr());
-function buildQuestion(word) {
-  // Show the English meaning, ask the learner to pick the matching German sentence.
+function buildQuestion(word, wordPool) {
   const correctSent = randSentence(word);
+  if (!correctSent) return null;
   const correct = correctSent.sentence_de;
-  // Distractors should match the learner's career flavor, not the generic
-  // (devops) seed sentences. Prefer words that already have career sentences;
-  // only fall back to any word if there aren't yet enough career-flavored ones.
-  let pool = DECK.filter(w => w.id !== word.id && hasCareerSentence(w));
+  // Prefer distractors from the same pool (unit), fall back to full deck
+  const base = (wordPool || DECK).filter(w => w.id !== word.id && w.sentences.length);
+  let pool = base.filter(w => hasCareerSentence(w));
+  if (pool.length < 2) pool = base;
   if (pool.length < 2) pool = DECK.filter(w => w.id !== word.id && w.sentences.length);
   pool = shuffle(pool);
   const distract = [];
-  for (const w of pool) { if (distract.length >= 2) break; const s = randSentence(w).sentence_de; if (s !== correct && !distract.includes(s)) distract.push(s); }
+  for (const w of pool) {
+    if (distract.length >= 2) break;
+    const s = randSentence(w);
+    if (s && s.sentence_de !== correct && !distract.includes(s.sentence_de)) distract.push(s.sentence_de);
+  }
+  if (!distract.length) return null;
   const options = shuffle([{ text: correct, correct: true }, ...distract.map(t => ({ text: t, correct: false }))]);
   return { word, prompt: correctSent.sentence_en, options };
 }
@@ -750,68 +1190,124 @@ async function startQuiz(words, mode) {
   // Make sure every word in the quiz has career sentences (covers mistake review,
   // where generation may not have been kicked off yet). Usually already done.
   if (ME.ai_enabled && words.some(w => !w.has_career_sentences && !genPromises[w.id])) {
-    $('#learn-area').innerHTML = `<div class="empty"><div class="big">✨</div>Preparing your quiz…</div>`;
+    $('#learn-area').innerHTML = aiLoadingHTML('Preparing your quiz…');
   }
   await ensureAllReady(words);
-  quiz = { items: words.map(buildQuestion), idx: 0, correct: 0, mode, answered: false };
+  const items = words.map(w => buildQuestion(w, words)).filter(Boolean);
+  if (!items.length) {
+    $('#learn-area').innerHTML = `<div class="empty"><div class="big">⚠️</div><p>Not enough sentences yet to run a quiz. Keep studying and try again once more words have examples.</p></div>`;
+    phase = 'study'; return;
+  }
+  quiz = { items, idx: 0, correct: 0, mode, answered: false, answers: {} };
   phase = 'quiz';
   if (mode === 'lesson') saveLessonState();   // resume into the quiz after a refresh
   renderLearn();
 }
 function renderQuiz() {
   const q = quiz.items[quiz.idx];
-  const opts = q.options.map((o, i) =>
-    `<button class="opt" data-i="${i}">${escapeHtml(o.text)}</button>`).join('');
-  $('#learn-area').innerHTML = `
-    <div style="font-size:.8rem;color:var(--muted);margin-bottom:10px">
+  const prev = quiz.answers[quiz.idx];  // { chosenIdx, correct } if already answered
+  const isAnswered = prev !== undefined;
+  const correctCount = Object.values(quiz.answers).filter(a => a.correct).length;
+  const opts = q.options.map((o, i) => {
+    let extra = '';
+    if (isAnswered) {
+      if (q.options[i].correct) extra = ' correct';
+      else if (i === prev.chosenIdx) extra = ' wrong';
+    }
+    return `<button class=”opt${extra}” data-i=”${i}”${isAnswered ? ' disabled' : ''}>${escapeHtml(o.text)}</button>`;
+  }).join('');
+  const isFirst = quiz.idx === 0;
+  const isLast = quiz.idx === quiz.items.length - 1;
+  const backBtn = !isFirst ? `<button class=”ghostbtn” id=”q-back”>‹ Back</button>` : '';
+  const nextBtn = isAnswered
+    ? `<button class=”primary” id=”q-next” style=”flex:1”>${isLast ? 'See results ›' : 'Next ›'}</button>`
+    : '';
+  const area = $('#learn-area');
+  if (!area) return;
+  const tipBtn = isAnswered && (q.word.meanings||[]).length
+    ? `<button class=”tip-btn” id=”tip-btn” title=”Show meanings” style=”margin-left:6px”>💡</button><div class=”tip-popup” id=”tip-popup” style=”display:none”><button class=”tip-popup-close” id=”tip-close”>✕</button><div>${q.word.meanings.map((m,i)=>`<div><b>${i+1}.</b> ${escapeHtml(m)}</div>`).join('')}</div></div>`
+    : '';
+  area.innerHTML = `
+    <div style=”font-size:.8rem;color:var(--muted);margin-bottom:10px”>
       ${quiz.mode === 'mistakes' ? 'Mistake review' : 'Quiz'} · question ${quiz.idx + 1} of ${quiz.items.length}
-      · score ${quiz.correct}/${quiz.idx}</div>
-    <div class="q-prompt">Which German sentence means this?</div>
-    <div class="q-english">“${escapeHtml(q.prompt)}”</div>
-    <div id="opts">${opts}</div>
-    <div class="row-actions" id="q-actions"></div>`;
-  $('#opts').querySelectorAll('.opt').forEach(b => b.onclick = () => answerQuiz(parseInt(b.dataset.i, 10)));
+      · score ${correctCount}/${Object.keys(quiz.answers).length}</div>
+    <div class=”q-prompt”>Which German sentence means this?</div>
+    <div class=”q-english”>”${escapeHtml(q.prompt)}”</div>
+    <div id=”opts”>${opts}</div>
+    <div class=”row-actions” id=”q-actions” style=”margin-top:16px;position:relative”>${backBtn}${nextBtn}${tipBtn}</div>`;
+  area.querySelectorAll('.opt:not([disabled])').forEach(b => b.onclick = () => answerQuiz(parseInt(b.dataset.i, 10)));
+  const backEl = area.querySelector('#q-back');
+  const nextEl = area.querySelector('#q-next');
+  if (backEl) backEl.onclick = () => { quiz.idx--; renderQuiz(); };
+  if (nextEl) nextEl.onclick = () => { if (isLast) finishQuiz(); else { quiz.idx++; renderQuiz(); } };
+  const tipBtnEl = area.querySelector('#tip-btn');
+  if (tipBtnEl) {
+    tipBtnEl.onclick = (e) => {
+      e.stopPropagation();
+      const p = area.querySelector('#tip-popup');
+      if (p.style.display !== 'none') { p.style.display = 'none'; return; }
+      p.style.display = 'block';
+      const r = e.currentTarget.getBoundingClientRect();
+      const pw = p.offsetWidth || 280;
+      let left = r.left + r.width / 2 - pw / 2;
+      left = Math.max(8, Math.min(left, window.innerWidth - pw - 8));
+      p.style.left = left + 'px';
+      p.style.top = (r.bottom + 8) + 'px';
+    };
+    area.querySelector('#tip-close').onclick = (e) => { e.stopPropagation(); area.querySelector('#tip-popup').style.display = 'none'; };
+    document.addEventListener('click', function closeTip(e) {
+      const p = area.querySelector('#tip-popup');
+      if (!p) { document.removeEventListener('click', closeTip); return; }
+      if (!tipBtnEl.contains(e.target) && !p.contains(e.target)) p.style.display = 'none';
+    });
+  }
 }
 async function answerQuiz(i) {
-  if (quiz.answered) return;
-  quiz.answered = true;
+  if (quiz.answers[quiz.idx] !== undefined) return;  // already answered this question
   const q = quiz.items[quiz.idx];
   const chosen = q.options[i];
   const wid = q.word.id;
-  $('#opts').querySelectorAll('.opt').forEach((b, j) => {
-    b.disabled = true;
-    if (q.options[j].correct) b.classList.add('correct');
-    else if (j === i) b.classList.add('wrong');
-  });
-  if (chosen.correct) {
-    quiz.correct++;
-    if (quiz.mode === 'mistakes') { // getting a mistake right reduces its wrong count
+  const correct = chosen.correct;
+  quiz.answers[quiz.idx] = { chosenIdx: i, correct };
+  // Update wrong tracking based on this answer
+  if (correct) {
+    if (quiz.mode === 'mistakes') {
       const c = (LEARN.wrong[wid] || 0) - 1;
       if (c <= 0) delete LEARN.wrong[wid]; else LEARN.wrong[wid] = c;
     }
   } else {
     LEARN.wrong[wid] = (LEARN.wrong[wid] || 0) + 1;
   }
-  const last = quiz.idx === quiz.items.length - 1;
-  $('#q-actions').innerHTML = `<button class="primary" id="q-next">${last ? 'See results ›' : 'Next ›'}</button>`;
-  $('#q-next').onclick = () => { if (last) finishQuiz(); else { quiz.idx++; quiz.answered = false; renderQuiz(); } };
+  renderQuiz();
 }
 async function finishQuiz() {
   const total = quiz.items.length;
-  const pct = total ? Math.round(quiz.correct / total * 100) : 0;
-  if (quiz.mode === 'lesson' && pct >= PASS_PCT) {
+  const correctCount = Object.values(quiz.answers).filter(a => a.correct).length;
+  const pct = total ? Math.round(correctCount / total * 100) : 0;
+  const passed = quiz.mode === 'lesson' && pct >= PASS_PCT;
+  if (passed) {
     const set = new Set(LEARN.learned.map(Number));
     lesson.forEach(w => set.add(w.id));
     LEARN.learned = [...set];
   }
   await saveLearn();
-  clearLessonState();   // lesson finished (passed or not) → next visit starts clean
-  phase = 'result'; quiz.finalPct = pct; renderLearn();
+  clearLessonState();
+  // Award score for passing a named unit (idempotent on server)
+  let scoreAwarded = 0;
+  if (passed && currentUnitId && loggedIn()) {
+    try {
+      const res = await jreq(`/api/units/${currentUnitId}/score`, 'POST', {});
+      scoreAwarded = res.awarded || 0;
+      if (scoreAwarded) { USER_SCORE = (USER_SCORE || 0) + scoreAwarded; updateScoreChip(); }
+    } catch { /* non-fatal */ }
+  }
+  phase = 'result'; quiz.finalPct = pct; quiz.scoreAwarded = scoreAwarded; renderLearn();
 }
 function renderResult() {
   const pct = quiz.finalPct;
   const passed = quiz.mode === 'lesson' && pct >= PASS_PCT;
   const isMistakes = quiz.mode === 'mistakes';
+  const scoreTag = quiz.scoreAwarded ? `<div style="margin:8px 0;font-size:1.1rem;color:var(--good);font-weight:700">+${quiz.scoreAwarded} ⭐ score</div>` : '';
   let body;
   if (isMistakes) {
     body = `<div class="big">✅</div><div class="score">${pct}%</div>
@@ -819,7 +1315,7 @@ function renderResult() {
       <div class="actions"><button class="primary" id="r-continue">Back to learning</button></div>`;
   } else if (passed) {
     body = `<div class="big">🎉</div><div class="score" style="color:var(--good)">${pct}%</div>
-      <p>Passed! You've unlocked the next set of words.</p>
+      ${scoreTag}<p>Passed! You've unlocked the next set of words.</p>
       <div class="actions"><button class="primary" id="r-continue">Continue ›</button></div>`;
   } else {
     body = `<div class="big">💪</div><div class="score" style="color:var(--hard)">${pct}%</div>
@@ -862,8 +1358,13 @@ function renderAuth() {
   const u = ME.user;
   const initial = escapeHtml((u.name || u.email || '?').trim().charAt(0).toUpperCase());
   $('#auth-area').innerHTML = `<span class="streak-badge" id="token-chip" title="Buy more tokens"></span>
-    <div class="avatar" id="avatar-btn" title="Menu">${u.picture ? `<img src="${escapeHtml(u.picture)}" alt="">` : initial}</div>`;
+    <span class="streak-badge" id="score-chip" title="Your score">⭐ 0</span>
+    <button class="inbox-bell" id="inbox-btn" title="Inbox" aria-label="Inbox">🔔<span id="inbox-badge" class="inbox-badge" style="display:none"></span></button>
+    <div class="avatar" id="avatar-btn" title="Menu">${u.picture ? `<img src="${escapeHtml(u.picture)}" alt="" referrerpolicy="no-referrer">` : initial}</div>`;
   updateTokenChip();
+  updateScoreChip();
+  updateInboxBadge();
+  $('#inbox-btn').onclick = (e) => { e.stopPropagation(); openInboxPopup(); };
   $('#avatar-btn').onclick = openDrawer;
   $('#drawer-user').innerHTML = `<b>${escapeHtml(u.name || 'Signed in')}</b>
     <div class="du-email">${escapeHtml(u.email || '')}</div>`;
@@ -876,6 +1377,10 @@ function updateTokenChip() {
   chip.classList.toggle('empty', t <= 0);
   chip.onclick = openBuy;
 }
+function updateScoreChip() {
+  const chip = $('#score-chip'); if (!chip) return;
+  chip.textContent = '⭐ ' + (USER_SCORE || 0);
+}
 // -------- slide-out menu (hamburger) --------
 function openDrawer() { $('#drawer').classList.add('open'); $('#drawer-overlay').classList.add('open'); }
 function closeDrawer() { $('#drawer').classList.remove('open'); $('#drawer-overlay').classList.remove('open'); }
@@ -887,19 +1392,50 @@ document.querySelectorAll('.drawer-item').forEach(el => el.addEventListener('cli
   closeDrawer();
   if (view) switchView(view);
   else if (act === 'buy') openBuy();
+  else if (act === 'invite') openInvite();
   else if (act === 'settings') openOnboarding(true);
   else if (act === 'logout') jreq('/auth/logout', 'POST', {}).finally(() => location.reload());
   // anchor items (Grammar, Dashboard) navigate via their href
 }));
 
+// -------- invite friends (referrals) --------
+let REF = null, REF_INFO = null;
+async function captureRef() {
+  const code = new URLSearchParams(location.search).get('ref');
+  if (!code) return;
+  REF = code;
+  try { await jreq('/api/ref', 'POST', { code }); } catch {}   // stash for after signup (incl. Google)
+  try { REF_INFO = await api('/api/ref/' + encodeURIComponent(code)); } catch {}  // who invited them
+  history.replaceState(null, '', location.pathname);            // clean ?ref from the URL
+}
+async function openInvite() {
+  const m = $('#invite-modal'); m.style.display = 'flex';
+  $('#invite-link').value = 'Loading…'; $('#invite-stats').textContent = '';
+  try {
+    const r = await api('/api/referral');
+    $('#invite-sub').textContent = `Earn ${r.reward} tokens for every friend who signs up with your link.`;
+    $('#invite-link').value = r.link;
+    $('#invite-stats').innerHTML = `<b style="color:var(--text)">${r.invited}</b> joined · earned <b style="color:var(--accent)">🪙 ${r.earned}</b>`;
+  } catch { $('#invite-link').value = 'Could not load your link.'; }
+}
+$('#invite-copy').onclick = async () => {
+  const v = $('#invite-link').value;
+  try { await navigator.clipboard.writeText(v); } catch { $('#invite-link').select(); document.execCommand('copy'); }
+  toast('✓ Invite link copied!');
+};
+$('#invite-close').onclick = () => { $('#invite-modal').style.display = 'none'; };
+$('#invite-modal').onclick = (e) => { if (e.target.id === 'invite-modal') $('#invite-modal').style.display = 'none'; };
+
 // -------- buy tokens (PayPal) --------
 let paypalSdkReady = null;
+let paypalSdkCurrency = null;
 function ensurePaypalSdk(currency) {
-  if (window.paypal) return Promise.resolve();
-  if (paypalSdkReady) return paypalSdkReady;
+  if (window.paypal && paypalSdkCurrency === currency) return Promise.resolve();
+  if (paypalSdkReady && paypalSdkCurrency === currency) return paypalSdkReady;
+  paypalSdkCurrency = currency;
   paypalSdkReady = new Promise((resolve, reject) => {
     const s = document.createElement('script');
-    s.src = `https://www.paypal.com/sdk/js?client-id=${encodeURIComponent(ME.paypal_client_id)}&currency=${encodeURIComponent(currency || 'EUR')}`;
+    s.src = `https://www.paypal.com/sdk/js?client-id=${encodeURIComponent(ME.paypal_client_id)}&currency=${encodeURIComponent(currency || 'EUR')}&disable-funding=sepa,card,bancontact,blik,eps,giropay,ideal,mercadopago,mybank,p24,sofort,venmo`;
     s.onload = resolve; s.onerror = reject;
     document.head.appendChild(s);
   });
@@ -910,12 +1446,15 @@ async function openBuy() {
   const list = $('#buy-list'); list.innerHTML = '<div class="empty">Loading…</div>';
   let pkgs = [];
   try { pkgs = await api('/api/packages'); } catch {}
-  if (!pkgs.length) { list.innerHTML = '<div class="empty">No token packages available yet.</div>'; return; }
+  const inviteFooter = `<div style="text-align:center;margin-top:16px;font-size:.85rem"><a href="#" id="buy-invite" style="color:var(--accent);text-decoration:none">🎁 Or invite friends to earn free tokens</a></div>`;
+  const wireInvite = () => { const a = $('#buy-invite'); if (a) a.onclick = (e) => { e.preventDefault(); modal.style.display = 'none'; openInvite(); }; };
+  if (!pkgs.length) { list.innerHTML = '<div class="empty">No token packages available yet.</div>' + inviteFooter; wireInvite(); return; }
   list.innerHTML = (ME.paypal_enabled ? '' : '<div class="muted" style="margin-bottom:10px">⚠️ Online payment isn\'t set up yet — ask an admin to top up your tokens.</div>')
     + pkgs.map(p => `<div class="pkg-card">
         <div><b>${p.tokens} tokens</b><div class="muted">${p.price.toFixed(2)} ${escapeHtml(p.currency)}</div></div>
         <div class="pkg-pay" id="pay-${p.id}"></div>
-      </div>`).join('');
+      </div>`).join('') + inviteFooter;
+  wireInvite();
   if (!ME.paypal_enabled) return;
   try {
     await ensurePaypalSdk(pkgs[0].currency || 'EUR');
@@ -960,7 +1499,7 @@ async function submitAuth() {
   if (!email || !password) { err.textContent = 'Email and password are required.'; return; }
   if (mode === 'signup' && password.length < 8) { err.textContent = 'Password must be at least 8 characters.'; return; }
   const url = mode === 'signup' ? '/auth/signup' : '/auth/login';
-  const payload = mode === 'signup' ? { email, password, name } : { email, password };
+  const payload = mode === 'signup' ? { email, password, name, ref: REF } : { email, password };
   try {
     const r = await fetch(url, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
     if (!r.ok) { const d = await r.json().catch(() => ({})); err.textContent = d.detail || 'Something went wrong.'; return; }
@@ -976,68 +1515,190 @@ function switchView(name) {
   if (name === 'browse') renderBrowse();
   if (name === 'learn') renderLearn();
   if (name === 'progress') renderProgress();
+  if (name === 'leaderboard') renderLeaderboard();
   if (name === 'reading') renderReading();
+  if (name === 'games') { $('#games-lobby').style.display=''; $('#hangman-game').style.display='none'; $('#cloze-game').style.display='none'; }
+  if (name === 'add') renderUnitAdmin();
 }
 document.querySelectorAll('nav button').forEach(btn => { btn.onclick = () => switchView(btn.dataset.view); });
 
+// -------- inbox --------
+let INBOX = [];
+async function loadInbox() {
+  try { INBOX = await api('/api/inbox'); } catch { INBOX = []; }
+  updateInboxBadge();
+}
+function updateInboxBadge() {
+  const unread = INBOX.filter(m => !m.read).length;
+  const badge = $('#inbox-badge');
+  if (!badge) return;
+  if (unread > 0) { badge.textContent = unread > 99 ? '99+' : unread; badge.style.display = ''; }
+  else { badge.style.display = 'none'; }
+}
+function fmtTime(iso) {
+  if (!iso) return '';
+  const d = new Date(iso.endsWith('Z') ? iso : iso + 'Z');
+  const diff = (Date.now() - d) / 1000;
+  if (diff < 60) return 'just now';
+  if (diff < 3600) return Math.floor(diff / 60) + 'm ago';
+  if (diff < 86400) return Math.floor(diff / 3600) + 'h ago';
+  return Math.floor(diff / 86400) + 'd ago';
+}
+function renderInboxPopup() {
+  const list = $('#inbox-list');
+  if (!list) return;
+  if (!INBOX.length) {
+    list.innerHTML = `<div class="empty" style="padding:24px 0;text-align:center;color:var(--muted)">No messages yet.</div>`;
+    return;
+  }
+  list.innerHTML = INBOX.map(m => {
+    const roomMatch = m.body.match(/room_id:([a-f0-9]+)/);
+    const roomId = roomMatch ? roomMatch[1] : null;
+    const displayBody = m.body.replace(/\s*room_id:[a-f0-9]+/, '').trim();
+    const joinBtn = roomId ? `<button class="ghost inbox-join-btn" data-room="${roomId}" style="margin-top:6px;font-size:.8rem;padding:4px 12px">Join call 📞</button>` : '';
+    return `<div class="inbox-msg${m.read ? '' : ' unread'}" data-id="${m.id}">
+      <div class="msg-icon">${escapeHtml(m.icon)}</div>
+      <div class="msg-body">
+        <div class="msg-subject">${m.read ? '' : '<span class="unread-dot"></span>'}${escapeHtml(m.subject)}</div>
+        <div class="msg-text">${escapeHtml(displayBody)}</div>
+        ${joinBtn}
+        <div class="msg-time">${fmtTime(m.created_at)}</div>
+      </div>
+    </div>`;
+  }).join('');
+  list.querySelectorAll('.inbox-msg.unread').forEach(el => {
+    el.onclick = async () => {
+      const id = +el.dataset.id;
+      el.classList.remove('unread');
+      el.querySelector('.unread-dot')?.remove();
+      const msg = INBOX.find(m => m.id === id);
+      if (msg) msg.read = 1;
+      updateInboxBadge();
+      await jreq(`/api/inbox/${id}/read`, 'POST', {});
+    };
+  });
+  list.querySelectorAll('.inbox-join-btn').forEach(btn => {
+    btn.onclick = async e => {
+      e.stopPropagation();
+      const roomId = btn.dataset.room;
+      closeInboxPopup();
+      const { valid } = await jreq(`/api/call/room/${roomId}`);
+      if (!valid) { toast('This call has expired or is no longer valid.'); return; }
+      startCall(roomId);
+    };
+  });
+}
+function openInboxPopup() {
+  renderInboxPopup();
+  $('#inbox-popup').style.display = 'flex';
+  $('#inbox-overlay').style.display = 'block';
+}
+function closeInboxPopup() {
+  $('#inbox-popup').style.display = 'none';
+  $('#inbox-overlay').style.display = 'none';
+}
+$('#inbox-overlay').onclick = closeInboxPopup;
+$('#inbox-read-all').onclick = async () => {
+  INBOX.forEach(m => m.read = 1);
+  updateInboxBadge();
+  renderInboxPopup();
+  await jreq('/api/inbox/read-all', 'POST', {});
+};
+
 // -------- progress / journey map --------
+let UNITS = [];
+async function loadUnits() { try { UNITS = await api('/api/units'); } catch { UNITS = []; } }
 function progressUnits() {
-  const deck = studyDeck();        // level words, id order; same source as lessons
-  const g = goal(), done = learnedSet(), units = [];
+  const lvl = PROFILE?.level || 'B1';
+  const done = learnedSet();
+  const stored = (UNITS || []).filter(u => (u.level || 'B1') === lvl);
+  if (stored.length) {                       // admin-built unit packs (token-gated)
+    const byId = Object.fromEntries(DECK.map(w => [w.id, w]));
+    return stored.map(u => {
+      const words = (u.word_ids || []).map(id => byId[id]).filter(w => w && (w.sentences.length || ME.ai_enabled));
+      const learned = words.filter(w => done.has(w.id)).length;
+      return { id: u.id, title: u.title, cost: u.token_cost || 0, paid: !!u.paid, words, learned,
+               quiz_score: u.quiz_score ?? 6, score_earned: !!u.score_earned,
+               complete: words.length > 0 && learned === words.length, stored: true };
+    });
+  }
+  // fallback: auto-batches of N words (legacy; no token gate) until admin builds units
+  const deck = studyDeck(), g = goal(), units = [];
   for (let i = 0; i < deck.length; i += g) {
     const words = deck.slice(i, i + g);
     const learned = words.filter(w => done.has(w.id)).length;
-    units.push({ words, learned, complete: words.length > 0 && learned === words.length });
+    units.push({ words, learned, complete: words.length > 0 && learned === words.length,
+                 cost: 0, paid: true, stored: false });
   }
   return units;
+}
+// Per-unit state for the current user (token gating).
+function unitState(units, i) {
+  const x = units[i];
+  if (x.complete) return 'done';
+  const prevDone = i === 0 || units[i - 1].complete;
+  if (!prevDone) return 'locked';                     // must finish previous first
+  if (x.cost > 0 && !x.paid) return 'unlockable';     // finished previous, must pay
+  return 'open';                                      // free or already unlocked
 }
 function renderProgress() {
   const units = progressUnits();
   const lvl = PROFILE?.level || 'B1';
   const u = ME.user;
-  $('#prog-avatar').innerHTML = (u && u.picture) ? `<img src="${u.picture}" alt="">` : '🧑‍🎓';
+  $('#prog-avatar').innerHTML = (u && u.picture) ? `<img src="${escapeHtml(u.picture)}" alt="" referrerpolicy="no-referrer">` : '🧑‍🎓';
   $('#prog-user').textContent = u ? (u.name || u.email || 'You') : 'Guest';
   $('#prog-level').textContent = 'Level ' + lvl;
 
   const total = units.length;
-  const currentIdx = units.findIndex(x => !x.complete);   // first incomplete unit
   const doneUnits = units.filter(x => x.complete).length;
-  const unlocked = doneUnits + (currentIdx >= 0 ? 1 : 0);
-  const pct = total ? Math.round(unlocked / total * 100) : 0;
-  $('#prog-unlocked').textContent = `Unlocked: ${unlocked} / ${total} units`;
+  const openCount = units.filter((x, i) => { const st = unitState(units, i); return st === 'done' || st === 'open'; }).length;
+  const pct = total ? Math.round(doneUnits / total * 100) : 0;
+  $('#prog-unlocked').textContent = `Unlocked: ${openCount} / ${total} units`;
+  $('#prog-score').textContent = `⭐ ${USER_SCORE} pts`;
   $('#prog-pct').textContent = pct + '%';
   $('#prog-fill').style.width = pct + '%';
 
   const grid = $('#prog-grid');
   if (!total) {
-    grid.innerHTML = `<div class="empty" style="grid-column:1/-1">No words at level ${escapeHtml(lvl)} yet.</div>`;
+    grid.innerHTML = `<div class="empty" style="grid-column:1/-1">No units at level ${escapeHtml(lvl)} yet.</div>`;
   } else {
     grid.innerHTML = units.map((x, i) => {
+      const st = unitState(units, i);
       let cls, status, badge;
-      if (x.complete) { cls = 'unlocked'; status = 'Review'; badge = '✓'; }
-      else if (i === currentIdx) { cls = 'current'; status = 'Continue'; badge = '▶'; }
-      else { cls = 'locked'; status = 'Locked'; badge = '🔒'; }
-      const cats = [...new Set(x.words.map(w => w.category))];
-      const sub = cats.length ? cats.slice(0, 2).join(' · ') : `${x.words.length} words`;
+      if (st === 'done') { cls = 'unlocked'; status = 'Review'; badge = x.score_earned ? '⭐' : '✓'; }
+      else if (st === 'open') { cls = 'current'; status = 'Continue'; badge = '▶'; }
+      else if (st === 'unlockable') { cls = 'buy'; status = `Unlock · ${x.cost} 🪙`; badge = '🔓'; }
+      else { cls = 'locked'; status = x.cost > 0 ? `Locked · ${x.cost} 🪙` : 'Locked'; badge = '🔒'; }
+      const sub = x.stored ? escapeHtml(x.title) : ([...new Set(x.words.map(w => w.topic))].slice(0, 2).join(' · ') || `${x.words.length} words`);
+      const scorePart = x.quiz_score ? (x.score_earned ? `⭐ ${x.quiz_score} earned` : `⭐ ${x.quiz_score} pts`) : '';
+      const costPart = x.cost > 0 ? `🪙 ${x.cost}` : '';
+      const meta = [costPart, scorePart].filter(Boolean).join(' · ');
       return `<div class="unit ${cls}" data-unit="${i}" style="cursor:pointer">
         <span class="u-badge">${badge}</span>
         <div class="u-no">UNIT ${i + 1}</div>
-        <div class="u-sub">${escapeHtml(sub)}</div>
+        <div class="u-sub">${sub}</div>
+        ${meta ? `<div class="u-meta">${meta}</div>` : ''}
         <div class="u-status">${status}</div>
       </div>`;
     }).join('');
     grid.querySelectorAll('.unit').forEach(el => el.onclick = () => {
-      const i = +el.dataset.unit, unit = units[i];
-      const locked = !unit.complete && i !== currentIdx;
-      if (locked) { toast(`🔒 Unit ${i + 1} is locked — finish the earlier units first.`); return; }
-      beginLesson(unit.words);   // completed → review; current → continue
+      const i = +el.dataset.unit, unit = units[i], st = unitState(units, i);
+      if (st === 'locked') { toast(`🔒 Finish the previous unit first.`); return; }
+      if (st === 'unlockable') { unlockUnit(unit); return; }
+      currentUnitId = unit.id || null; beginLesson(unit.words);   // done → review; open → study
     });
   }
 
+  const nextIdx = units.findIndex(x => !x.complete);
   let ms;
-  if (!total) ms = 'Add words at this level to begin.';
-  else if (currentIdx < 0) ms = '🎉 Level complete! Raise your level in ⚙︎ Settings.';
-  else { const c = units[currentIdx], left = c.words.length - c.learned; ms = `Finish Unit ${currentIdx + 1}: ${left} word${left === 1 ? '' : 's'} to go`; }
+  if (!total) ms = 'No units at this level yet.';
+  else if (nextIdx < 0) ms = '🎉 Level complete! Raise your level in ⚙︎ Settings.';
+  else {
+    const st = unitState(units, nextIdx), c = units[nextIdx];
+    if (st === 'locked') ms = `Finish Unit ${nextIdx} to open Unit ${nextIdx + 1}.`;
+    else if (st === 'unlockable') ms = `Unlock Unit ${nextIdx + 1} for ${c.cost} 🪙.`;
+    else { const left = c.words.length - c.learned; ms = `Finish Unit ${nextIdx + 1}: ${left} word${left === 1 ? '' : 's'} to go`; }
+  }
   $('#prog-milestone').textContent = '🎯 ' + ms;
 
   // reading progress
@@ -1055,6 +1716,155 @@ function renderProgress() {
   $('#prog-readings').onclick = () => switchView('reading');
 }
 const completedUnits = () => progressUnits().filter(x => x.complete).length;
+
+async function unlockUnit(u) {
+  if (!confirm(`Unlock "${u.title}" for ${u.cost} tokens?\nYou have 🪙 ${ME.user?.tokens ?? 0}.`)) return;
+  try {
+    const r = await jreq('/api/units/' + u.id + '/unlock', 'POST', {});
+    if (r.tokens != null && ME.user) { ME.user.tokens = r.tokens; updateTokenChip(); }
+    await loadUnits();           // refresh paid state
+    toast(`✓ "${u.title}" unlocked!`);
+    beginLesson(u.words);        // jump straight into the unit
+  } catch (e) {
+    if (e && e.status === 402) toast('Not enough tokens — buy more from the menu.');
+    else if (e && e.status === 409) toast('Finish the previous unit first.');
+    else toast('Could not unlock this unit.');
+  }
+}
+
+// -------- admin: manage units (Add tab) --------
+let unitEditId = null;
+const unitLevelSel = () => $('#unit-level').value || 'B1';
+function renderUnitAdmin() {
+  if (!isAdmin() || !$('#unit-level')) return;
+  if (!$('#unit-level').options.length)
+    $('#unit-level').innerHTML = LEVELS.map(l => `<option value="${l}"${l === 'B1' ? ' selected' : ''}>${l}</option>`).join('');
+  const list = $('#unit-list');
+  list.innerHTML = (UNITS || []).length ? UNITS.map(u => `
+    <div class="u-admin-row">
+      <span><b>${escapeHtml(u.title)}</b> <span class="muted">· ${escapeHtml(u.level)} · ${u.token_cost}🪙 · ${(u.word_ids || []).length} words · #${u.position}</span></span>
+      <span class="nowrap"><button class="r-del" data-uedit="${u.id}">Edit</button><button class="r-del" data-udel="${u.id}">Delete</button></span>
+    </div>`).join('') : '<div class="muted" style="font-size:.82rem">No units yet — create one below.</div>';
+  list.querySelectorAll('[data-uedit]').forEach(b => b.onclick = () => editUnit(+b.dataset.uedit));
+  list.querySelectorAll('[data-udel]').forEach(b => b.onclick = async () => {
+    if (!confirm('Delete this unit? Its words become unassigned.')) return;
+    await api('/api/units/' + b.dataset.udel, { method: 'DELETE' });
+    if (unitEditId === +b.dataset.udel) resetUnitForm();
+    await loadUnits(); renderUnitAdmin();
+  });
+  renderUnitWords();
+}
+function renderUnitWords() {
+  const lvl = unitLevelSel();
+  const editing = unitEditId ? ((UNITS.find(u => u.id === unitEditId) || {}).word_ids || []) : [];
+  const byUnit = {}; (UNITS || []).forEach(u => (u.word_ids || []).forEach(id => byUnit[id] = u));
+  const words = DECK.filter(w => (w.level || 'B1') === lvl).sort((a, b) => a.id - b.id);
+  $('#unit-words').innerHTML = words.length ? words.map(w => {
+    const inThis = editing.includes(w.id);
+    const other = byUnit[w.id] && byUnit[w.id].id !== unitEditId ? byUnit[w.id] : null;
+    return `<label class="uw"><input type="checkbox" value="${w.id}"${inThis ? ' checked' : ''}> ${escapeHtml(w.word)}${other ? ` <span class="muted">(in ${escapeHtml(other.title)})</span>` : ''}</label>`;
+  }).join('') : '<div class="muted" style="font-size:.8rem">No words at this level — add words above first.</div>';
+}
+function editUnit(id) {
+  const u = UNITS.find(x => x.id === id); if (!u) return;
+  unitEditId = id;
+  $('#unit-title').value = u.title; $('#unit-level').value = u.level;
+  $('#unit-cost').value = u.token_cost; $('#unit-score').value = u.quiz_score ?? 6; $('#unit-pos').value = u.position;
+  $('#unit-form-title').textContent = '✏️ Edit unit';
+  $('#unit-save').textContent = 'Save changes'; $('#unit-cancel').style.display = '';
+  renderUnitWords();
+  $('#unit-form-title').scrollIntoView({ behavior: 'smooth', block: 'start' });
+}
+function resetUnitForm() {
+  unitEditId = null;
+  $('#unit-title').value = ''; $('#unit-cost').value = 0; $('#unit-score').value = 6; $('#unit-pos').value = 0;
+  $('#unit-form-title').textContent = '📦 Units (token-gated packs)';
+  $('#unit-save').textContent = 'Save unit'; $('#unit-cancel').style.display = 'none'; $('#unit-toast').textContent = '';
+  renderUnitWords();
+}
+if ($('#unit-level')) $('#unit-level').onchange = renderUnitWords;
+if ($('#unit-cancel')) $('#unit-cancel').onclick = resetUnitForm;
+if ($('#unit-save')) $('#unit-save').onclick = async () => {
+  const title = $('#unit-title').value.trim(), t = $('#unit-toast');
+  if (!title) { t.style.color = 'var(--hard)'; t.textContent = '⚠️ Enter a unit title.'; return; }
+  const payload = { title, level: unitLevelSel(),
+    token_cost: parseInt($('#unit-cost').value, 10) || 0,
+    quiz_score: parseInt($('#unit-score').value, 10) || 6,
+    position: parseInt($('#unit-pos').value, 10) || 0 };
+  if (unitEditId) payload.id = unitEditId;
+  const res = await jreq('/api/units', 'POST', payload);
+  const ids = [...$('#unit-words').querySelectorAll('input:checked')].map(c => +c.value);
+  await jreq('/api/units/' + res.id + '/words', 'PUT', { word_ids: ids });
+  const saved = unitEditId ? 'Updated' : 'Created';
+  resetUnitForm();
+  t.style.color = 'var(--good)'; t.textContent = `✓ ${saved} "${title}"`;
+  await loadUnits(); renderUnitAdmin();
+};
+
+async function renderLeaderboard() {
+  const el = $('#leaderboard-list'); if (!el) return;
+  el.innerHTML = '<div class="muted" style="font-size:.82rem;color:var(--muted)">Loading…</div>';
+  let d;
+  try { d = await api('/api/leaderboard'); } catch { el.innerHTML = '<div class="lb-empty">Couldn\'t load the leaderboard.</div>'; return; }
+
+  // wire up the call-ready toggle
+  const callCost = d.call_cost || 10;
+  const costNote = $('#call-cost-note');
+  if (costNote) costNote.textContent = `Callers pay 🪙 ${callCost} · You earn ⭐ ${callCost} for answering`;
+  const chk = $('#call-ready-chk');
+  if (chk) {
+    chk.checked = !!(ME.user && ME.user.call_ready);
+    chk.onchange = async () => {
+      const want = chk.checked;
+      try {
+        await jreq('/api/call/ready', 'POST', { ready: want });
+        ME.user.call_ready = want;
+        toast(want ? `📞 You are now available! You'll earn ⭐ ${callCost} for each call you answer.` : 'Speaking practice disabled.');
+      } catch (e) {
+        chk.checked = !want;
+        toast(e.message || 'Could not update status.');
+      }
+    };
+  }
+
+  if (!d.top.length) { el.innerHTML = '<div class="lb-empty">No one has learned a word yet — be the first! 🚀</div>'; return; }
+  const medal = (r) => r === 1 ? '🥇' : r === 2 ? '🥈' : r === 3 ? '🥉' : `#${r}`;
+  let rows = d.top.map(u => {
+    const callBadge = u.call_ready && !u.me ? `<span class="call-badge">📞 open to call</span>` : (u.call_ready && u.me ? `<span class="call-badge">📞 you</span>` : '');
+    const callBtn = u.call_ready && !u.me ? `<button class="lb-call-btn" data-uid="${u.id}" data-name="${escapeHtml(u.name)}">Call</button>` : '';
+    return `<div class="lb-row${u.me ? ' me' : ''}">
+      <span class="lb-rank">${medal(u.rank)}</span>
+      <span class="lb-name">${escapeHtml(u.name)}${u.me ? ' <span class="lb-you">you</span>' : ''}</span>
+      ${callBadge}
+      <span class="lb-score" style="margin-left:auto">${u.learned} <span class="lb-words">words</span></span>
+      ${callBtn}
+    </div>`;
+  }).join('');
+  if (d.me && d.me.rank && !d.top.some(u => u.me)) {
+    rows += `<div class="lb-row me out"><span class="lb-rank">#${d.me.rank}</span>
+      <span class="lb-name">You</span><span class="lb-score" style="margin-left:auto">${d.me.learned} <span class="lb-words">words</span></span></div>`;
+  }
+  el.innerHTML = rows;
+
+  el.querySelectorAll('.lb-call-btn').forEach(btn => {
+    btn.onclick = async () => {
+      const uid = +btn.dataset.uid, name = btn.dataset.name;
+      if (!confirm(`Call ${name}? This costs you 🪙 ${callCost} tokens. They earn ⭐ ${callCost} score for answering.`)) return;
+      btn.disabled = true; btn.textContent = '…';
+      try {
+        const res = await jreq('/api/call/initiate', 'POST', { callee_id: uid });
+        ME.user.tokens = res.tokens;
+        updateTokenChip();
+        toast(`📞 Calling ${name}… connecting`);
+        loadInbox();
+        if (res.room_id) startCall(res.room_id);
+      } catch (e) {
+        btn.disabled = false; btn.textContent = 'Call';
+        toast(e.message || 'Could not initiate call.');
+      }
+    };
+  });
+}
 
 // -------- readings (admin-posted stories, unlocked every N completed units) --------
 const UNITS_PER_READING = 2;            // reading i unlocks at (i+1)*UNITS_PER_READING completed units
@@ -1076,7 +1886,7 @@ function mdStory(md) {
   }).join('');
 }
 function renderReading() {
-  $('#reading-admin').classList.toggle('hidden', !isAdmin());
+  $('#reading-admin').classList.add('hidden');   // reading management moved to the Dashboard
   $('#reading-view').innerHTML = '';
   const done = completedUnits();
   const list = $('#reading-list');
@@ -1092,7 +1902,6 @@ function renderReading() {
     return `<div class="read-card ${unlocked ? 'unlocked' : 'locked'}" data-id="${r.id}" data-unlocked="${unlocked ? 1 : 0}">
       <span class="r-ico">${unlocked ? '📖' : '🔒'}</span>
       <div class="r-main"><div class="r-name">${escapeHtml(r.title)}</div><div class="r-meta">${meta}</div></div>
-      ${isAdmin() ? `<button class="r-del" data-edit="${r.id}">Edit</button><button class="r-del" data-del="${r.id}">Delete</button>` : ''}
     </div>`;
   }).join('');
   list.querySelectorAll('.read-card').forEach(el => el.onclick = (e) => {
@@ -1188,25 +1997,30 @@ function resetSentRows() { $('#sent-list').innerHTML = ''; $('#sent-list').appen
 $('#f-level').innerHTML = LEVELS.map(l => `<option value="${l}"${l === 'B1' ? ' selected' : ''}>${l}</option>`).join('');
 $('#add-sent-row').onclick = () => $('#sent-list').appendChild(sentenceRow());
 $('#f-save').onclick = async () => {
-  const word = $('#f-word').value.trim(), category = $('#f-cat').value.trim() || 'general';
+  const word = $('#f-word').value.trim(), topic = $('#f-cat').value.trim() || 'general';
   const level = $('#f-level').value || 'B1';
+  const lemma = $('#f-lemma').value.trim(), pos = $('#f-pos').value.trim();
+  const article = $('#f-article').value.trim(), url = $('#f-url').value.trim();
   const sentences = [...$('#sent-list').querySelectorAll('.sent-block')].map(b => ({
     sentence_de: b.querySelector('.s-de').value.trim(), sentence_en: b.querySelector('.s-en').value.trim(),
   })).filter(s => s.sentence_de && s.sentence_en);
   const toast = $('#add-toast');
   if (!word) { toast.style.color = 'var(--hard)'; toast.textContent = '⚠️ Enter the target word.'; return; }
   if (!sentences.length && !ME.ai_enabled) { toast.style.color = 'var(--hard)'; toast.textContent = '⚠️ Add at least one sentence (AI generation is off, so a word with no sentences can never be studied).'; return; }
-  const res = await jreq('/api/words', 'POST', { word, category, level, sentences });
+  const meanings = $('#f-meanings').value.split('\n').map(s => s.trim()).filter(Boolean);
+  const res = await jreq('/api/words', 'POST', { word, topic, level, lemma, pos, article, url, sentences });
+  if (meanings.length) await jreq(`/api/words/${res.id}/meanings`, 'PUT', { meanings }).catch(() => {});
   toast.style.color = 'var(--good)';
   toast.textContent = res.created ? `✓ Added "${word}" (${level})` : `✓ "${word}" already existed — updated (${level})`;
-  $('#f-word').value = ''; resetSentRows();
+  $('#f-word').value = ''; $('#f-meanings').value = '';
+  ['#f-lemma', '#f-pos', '#f-article', '#f-url'].forEach(s => $(s).value = ''); resetSentRows();
   await loadDeck(); refreshCategorySelects();
 };
 function refreshCategorySelects() {
   const cats = allCategories().sort();
   $('#cat-list').innerHTML = cats.map(c => `<option value="${c}">`).join('');
   const el = $('#browse-cat'), cur = el.value;
-  el.innerHTML = '<option value="all">All categories</option>' + cats.map(c => `<option value="${c}">${c}</option>`).join('');
+  el.innerHTML = '<option value="all">All topics</option>' + cats.map(c => `<option value="${c}">${c}</option>`).join('');
   el.value = cur || 'all';
 }
 
@@ -1228,7 +2042,7 @@ function renderBrowse() {
   const admin = isAdmin();
   const showAll = admin && $('#browse-all') && $('#browse-all').checked;
   const visited = visitedSet();
-  let words = cat === 'all' ? DECK : DECK.filter(w => w.category === cat);
+  let words = cat === 'all' ? DECK : DECK.filter(w => (w.topic || w.category) === cat);
   if (!showAll) words = words.filter(w => visited.has(w.id));  // only words you've studied
   const list = $('#browse-list');
   if (!words.length) {
@@ -1240,22 +2054,13 @@ function renderBrowse() {
   list.innerHTML = words.map(w => `
     <div class="word-item">
       <div class="word-head">
-        <div><span class="w" data-say="${escapeHtml(w.word)}" title="Hear it" style="cursor:pointer">${escapeHtml(w.word)}${speechOK ? ' 🔊' : ''}</span><span class="meta"> · ${escapeHtml(w.level || 'B1')} · ${escapeHtml(w.category)} · ${wordStatus(w)}</span></div>
-        ${admin ? `<button class="del" data-del="${w.id}">Delete word</button>` : ''}
+        <div><span class="w" data-wid="${w.id}" title="Hear it" style="cursor:pointer">${escapeHtml(w.word)} 🔊</span><span class="meta"> · ${escapeHtml(w.level || 'B1')} · ${escapeHtml(w.topic)} · ${wordStatus(w)}</span>${wordMeta(w)}</div>
       </div>
-      ${w.sentences.map(s => `<div class="sent-row"><div><div class="de">${escapeHtml(s.sentence_de)}</div><div class="en">${escapeHtml(s.sentence_en)}</div></div>
-        ${admin ? `<button class="x" data-delsent="${s.id}" title="Remove sentence">✕</button>` : ''}</div>`).join('')}
-      ${admin ? `<button class="ghost" data-addsent="${w.id}">+ Add sentence</button>` : ''}
+      ${(w.meanings||[]).length ? `<div class="w-meanings">${w.meanings.map((m,i)=>`<span class="w-meaning-chip">${i+1}. ${escapeHtml(m)}</span>`).join('')}</div>` : ''}
+      ${w.sentences.map(s => `<div class="sent-row"><div><div class="de">${escapeHtml(s.sentence_de)}</div><div class="en">${escapeHtml(s.sentence_en)}</div></div></div>`).join('')}
     </div>`).join('');
-  list.querySelectorAll('[data-say]').forEach(el => el.onclick = () => speak(el.dataset.say));
-  list.querySelectorAll('[data-del]').forEach(b => b.onclick = async () => { if (!confirm('Delete this word for everyone?')) return; await api('/api/words/' + b.dataset.del, { method: 'DELETE' }); await loadDeck(); renderBrowse(); });
-  list.querySelectorAll('[data-delsent]').forEach(b => b.onclick = async () => { await api('/api/sentences/' + b.dataset.delsent, { method: 'DELETE' }); await loadDeck(); renderBrowse(); });
-  list.querySelectorAll('[data-addsent]').forEach(b => b.onclick = async () => {
-    const de = prompt('German sentence:'); if (!de) return; const en = prompt('English sentence:'); if (!en) return;
-    const res = await jreq('/api/words/' + b.dataset.addsent + '/sentences', 'POST', { sentence_de: de, sentence_en: en });
-    if (res.duplicate) { alert('That sentence is already on this word — skipped.'); return; }
-    await loadDeck(); renderBrowse();
-  });
+  list.querySelectorAll('[data-wid]').forEach(el => el.onclick = () => { const w = DECK.find(x => x.id === +el.dataset.wid); if (w) playWord(w); });
+  // (Word create/edit/delete now lives in the admin Dashboard, not here.)
 }
 $('#browse-cat').onchange = renderBrowse;
 $('#browse-all').onchange = renderBrowse;
@@ -1315,20 +2120,31 @@ function showGate() {
   document.querySelector('main').style.display = 'none';
   $('#gate').style.display = 'flex';
   $('#gate-google').style.display = ME.google_enabled ? 'block' : 'none';
+  // Arrived via an invite link → this is a NEW user: show who invited them and
+  // take them straight to the sign-up form (not log in).
+  if (REF && REF_INFO && REF_INFO.valid) {
+    $('#gate-invite').style.display = 'block';
+    $('#gate-invite').innerHTML = `🎁 <b>${escapeHtml(REF_INFO.name)}</b> invited you to learn German!`;
+    $('#gate-sub').textContent = 'Create your free account below to get started.';
+    openAuth('signup');
+  }
 }
 $('#gate-login').onclick = () => openAuth('login');
 $('#gate-signup').onclick = () => openAuth('signup');
 
 // -------- init --------
 async function init() {
+  await captureRef();   // stash any ?ref=CODE before the user signs up
   ME = await api('/api/me');
   if (!ME.user) { showGate(); return; }   // app is for signed-in users only
   renderAuth();
   const adminDisp = isAdmin() ? '' : 'none';
-  $('#nav-add').style.display = adminDisp;
-  $('#nav-browse').style.display = adminDisp;   // Browse is admin-only (deck management)
+  // Content management (Add words, Browse deck, Units) now lives in the Dashboard,
+  // not the learning page — so these stay hidden here.
+  $('#nav-add').style.display = 'none';
+  $('#nav-browse').style.display = 'none';
+  $('#nav-add-sep').style.display = 'none';
   $('#nav-dashboard').style.display = adminDisp;
-  $('#nav-add-sep').style.display = adminDisp;  // "Admin" separator in the drawer
   $('#browse-all-wrap').classList.toggle('hidden', !isAdmin());
   $('#r-level').innerHTML = LEVELS.map(l => `<option value="${l}"${l === 'B1' ? ' selected' : ''}>${l}</option>`).join('');
   await loadProfile();          // profile first so the deck loads career-flavored sentences
@@ -1336,19 +2152,684 @@ async function init() {
   await loadLearn();
   await loadNotes();
   await loadReadings();
+  await loadUnits();
+  try { const s = await api('/api/score'); USER_SCORE = s.total || 0; } catch { USER_SCORE = 0; }
+  updateScoreChip();
+  await loadInbox();
+  await loadCareerSuggestions();
   refreshCategorySelects();
   resetSentRows();
   updateReminderUI();
   if (!PROFILE) {
     openOnboarding(false);
+    // SSE will be connected after onboarding save (once profile + session are ready)
   } else {
     const r = resumeLesson();   // continue where the user left off, if mid-lesson
     if (r) { await beginLesson(r.words, r.idx); if (r.phase === 'quiz' && lesson.length) await startQuiz(lesson, 'lesson'); }
     else { startLesson(); }
+    window._connectSSE?.();   // already have a profile — connect SSE now
   }
   maybeNotify();
 }
 init();
+
+// ── Games ─────────────────────────────────────────────────────────────────────
+(function () {
+  // Wire game card clicks
+  document.querySelectorAll('.game-card[data-game]').forEach(card => {
+    card.addEventListener('click', () => {
+      const game = card.dataset.game;
+      if (game === 'hangman') startHangman();
+    });
+  });
+
+  $('#hangman-back').addEventListener('click', () => {
+    $('#hangman-game').style.display = 'none';
+    $('#games-lobby').style.display = '';
+    hmReset();
+  });
+
+  $('#hm-next').addEventListener('click', () => {
+    $('#hm-result').style.display = 'none';
+    $('#hm-tip-popup').style.display = 'none';
+    hmPickWord();
+  });
+
+  $('#hm-tip-btn').addEventListener('click', () => {
+    const popup = $('#hm-tip-popup');
+    if (popup.style.display !== 'none') { popup.style.display = 'none'; return; }
+    const pool = hmSentences.filter(s => s.sentence_de);
+    if (!pool.length) {
+      $('#hm-tip-text').textContent = 'No example sentences available for this word yet.';
+    } else {
+      const s = pool[Math.floor(Math.random() * pool.length)];
+      $('#hm-tip-text').textContent = s.sentence_de;
+    }
+    popup.style.display = 'block';
+  });
+
+  $('#hm-tip-close').addEventListener('click', () => {
+    $('#hm-tip-popup').style.display = 'none';
+  });
+
+  // ── Hangman logic ────────────────────────────────────────────────────────────
+  const HM_PARTS = ['hm-head','hm-body','hm-arm-l','hm-arm-r','hm-leg-l','hm-leg-r'];
+  let hmWord = '', hmTranslation = '', hmSentences = [], hmGuessed = new Set(), hmWrong = 0;
+  let hmPlayedIds = new Set();   // words played this session (no repeats until all exhausted)
+  let hmSessionScore = 0;        // running score for this game session
+
+  function hmScoreForWrong(wrong) {
+    if (wrong === 0) return 3;
+    if (wrong <= 2)  return 2;
+    if (wrong <= 4)  return 1;
+    return 0;
+  }
+
+  function startHangman() {
+    $('#games-lobby').style.display = 'none';
+    $('#hangman-game').style.display = '';
+    hmPlayedIds = new Set();
+    hmSessionScore = 0;
+    hmUpdateScoreBar();
+    hmPickWord();
+  }
+
+  function hmBuildPool() {
+    const byId = Object.fromEntries(DECK.map(w => [w.id, w]));
+    const userLevel = PROFILE?.level || 'B1';
+    const userLevelIdx = LEVELS.indexOf(userLevel);
+    const unplayed = id => !hmPlayedIds.has(id);
+
+    const hasSentence = w => w && w.sentences && w.sentences.length > 0;
+
+    // Priority 1: words from units the user has unlocked or completed, with sentences
+    const unitWordIds = new Set();
+    (UNITS || []).forEach(u => {
+      if (u.paid || u.complete) (u.word_ids || []).forEach(id => unitWordIds.add(id));
+    });
+    let pool = [...unitWordIds].filter(unplayed).map(id => byId[id]).filter(hasSentence);
+    if (pool.length) return pool;
+
+    // All unit words played — reset and try again from units
+    if (unitWordIds.size) {
+      hmPlayedIds = new Set();
+      return [...unitWordIds].map(id => byId[id]).filter(hasSentence);
+    }
+
+    // Priority 2: fall back through levels (current → A1), words with sentences only
+    for (let i = userLevelIdx; i >= 0; i--) {
+      const lvl = LEVELS[i];
+      pool = DECK.filter(w => w.level === lvl && unplayed(w.id) && hasSentence(w));
+      if (pool.length) return pool;
+    }
+
+    // All levels exhausted — reset and use full deck (words with sentences)
+    hmPlayedIds = new Set();
+    return DECK.filter(hasSentence);
+  }
+
+  function hmPickWord() {
+    const pool = hmBuildPool();
+    if (!pool.length) {
+      $('#hm-hint').textContent = 'No words with example sentences yet — study a unit first so sentences get generated!';
+      $('#hm-word').innerHTML = ''; $('#hm-keyboard').innerHTML = '';
+      return;
+    }
+    const w = pool[Math.floor(Math.random() * pool.length)];
+    hmPlayedIds.add(w.id);
+    hmWord = w.word.toLowerCase();
+    hmTranslation = w.translation || '';
+    hmSentences = w.sentences || [];
+    hmGuessed = new Set();
+    hmWrong = 0;
+    $('#hm-tip-popup').style.display = 'none';
+    hmRender();
+  }
+
+  function hmUpdateScoreBar() {
+    let bar = $('#hm-score-bar');
+    if (!bar) return;
+    bar.textContent = `Session score: ⭐ ${hmSessionScore}`;
+  }
+
+  function hmRender() {
+    HM_PARTS.forEach((id, i) => {
+      document.getElementById(id).style.display = i < hmWrong ? '' : 'none';
+    });
+
+    $('#hm-word').innerHTML = hmWord.split('').map(ch => {
+      if (ch === ' ') return '<span class="hm-letter" style="border:none"> </span>';
+      return `<span class="hm-letter">${hmGuessed.has(ch) ? escapeHtml(ch.toUpperCase()) : ''}</span>`;
+    }).join('');
+
+    $('#hm-hint').textContent = hmWrong >= 3 ? `Hint: ${hmTranslation}` : 'Guess the German word';
+    $('#hm-translation').textContent = '';
+    $('#hm-wrong-count').textContent = hmWrong;
+
+    const alpha = 'abcdefghijklmnopqrstuvwxyzäöüß';
+    $('#hm-keyboard').innerHTML = alpha.split('').map(ch => {
+      const guessed = hmGuessed.has(ch);
+      const correct = guessed && hmWord.includes(ch);
+      const wrong   = guessed && !hmWord.includes(ch);
+      return `<button class="hm-key${correct?' correct':wrong?' wrong':''}" data-ch="${ch}" ${guessed?'disabled':''}>${ch.toUpperCase()}</button>`;
+    }).join('');
+
+    $('#hm-keyboard').querySelectorAll('.hm-key:not(:disabled)').forEach(btn => {
+      btn.addEventListener('click', () => hmGuess(btn.dataset.ch));
+    });
+
+    checkHmEnd();
+  }
+
+  function hmGuess(ch) {
+    if (hmGuessed.has(ch)) return;
+    hmGuessed.add(ch);
+    if (!hmWord.includes(ch)) hmWrong++;
+    hmRender();
+  }
+
+  function checkHmEnd() {
+    const won  = hmWord.split('').every(ch => ch === ' ' || hmGuessed.has(ch));
+    const lost = hmWrong >= 6;
+    if (!won && !lost) return;
+
+    const earned = won ? hmScoreForWrong(hmWrong) : 0;
+    if (earned > 0) hmSessionScore += earned;
+    hmUpdateScoreBar();
+
+    $('#hm-result').style.display = '';
+    if (won) {
+      const stars = '⭐'.repeat(earned);
+      $('#hm-result-msg').innerHTML = `🎉 Correct! &nbsp;${stars} <span style="font-size:1rem;font-weight:400">+${earned} score</span>`;
+      $('#hm-result-msg').style.color = '#22c55e';
+    } else {
+      $('#hm-word').innerHTML = hmWord.split('').map(ch =>
+        ch === ' '
+          ? '<span class="hm-letter" style="border:none"> </span>'
+          : `<span class="hm-letter" style="color:#ef4444">${escapeHtml(ch.toUpperCase())}</span>`
+      ).join('');
+      $('#hm-result-msg').textContent = '💀 Game over! No score this round.';
+      $('#hm-result-msg').style.color = '#ef4444';
+      $('#hm-translation').textContent = hmTranslation;
+    }
+    $('#hm-keyboard').querySelectorAll('.hm-key').forEach(b => b.disabled = true);
+  }
+
+  function hmReset() {
+    hmWord = ''; hmTranslation = ''; hmGuessed = new Set(); hmWrong = 0;
+    hmPlayedIds = new Set(); hmSessionScore = 0;
+  }
+
+  // Keyboard support
+  document.addEventListener('keydown', e => {
+    const gameVisible = $('#hangman-game') && $('#hangman-game').style.display !== 'none';
+    if (!gameVisible) return;
+    if ($('#hm-result').style.display !== 'none') return;
+    const ch = e.key.toLowerCase();
+    if (/^[a-zäöüß]$/.test(ch)) hmGuess(ch);
+  });
+})();
+
+// ── Cloze game ────────────────────────────────────────────────────────────────
+(function () {
+  document.querySelector('.game-card[data-game="cloze"]')
+    .addEventListener('click', startCloze);
+  $('#cloze-back').addEventListener('click', () => {
+    $('#cloze-game').style.display = 'none';
+    $('#games-lobby').style.display = '';
+    czReset();
+  });
+  $('#cloze-next').addEventListener('click', () => {
+    $('#cloze-result').style.display = 'none';
+    czPick();
+  });
+
+  let czWord = null, czSentence = null, czAttempts = 0, czSessionScore = 0;
+  let czPlayedKeys = new Set();   // "wordId-sentenceIdx" to avoid repeats
+
+  function czScoreForAttempts(attempts) {
+    if (attempts === 1) return 3;
+    if (attempts === 2) return 2;
+    if (attempts === 3) return 1;
+    return 0;
+  }
+
+  function czUpdateScoreBar() {
+    $('#cloze-score-bar').textContent = `Session score: ⭐ ${czSessionScore}`;
+  }
+
+  function startCloze() {
+    $('#games-lobby').style.display = 'none';
+    $('#cloze-game').style.display = '';
+    czPlayedKeys = new Set();
+    czSessionScore = 0;
+    czUpdateScoreBar();
+    czPick();
+  }
+
+  function czBuildPool() {
+    // Same priority as hangman: unlocked/completed unit words first, then older levels
+    const byId = Object.fromEntries(DECK.map(w => [w.id, w]));
+    const userLevelIdx = LEVELS.indexOf(PROFILE?.level || 'B1');
+
+    const unitWordIds = new Set();
+    (UNITS || []).forEach(u => {
+      if (u.paid || u.complete) (u.word_ids || []).forEach(id => unitWordIds.add(id));
+    });
+
+    // Check if a word appears usably in a sentence:
+    // The token containing it must START with the word (compound-head), not just embed it as a suffix.
+    function czTokenFor(word, sentence) {
+      const escaped = word.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+      const m = sentence.match(new RegExp(`[\\wäöüÄÖÜß]*${escaped}[\\wäöüÄÖÜß]*`, 'i'));
+      if (!m) return null;
+      // Reject if the word appears only as a suffix (token doesn't start with the word)
+      if (!m[0].toLowerCase().startsWith(word.toLowerCase())) return null;
+      return m[0];
+    }
+
+    // Flatten words+sentences into candidate pairs
+    function pairs(words) {
+      const out = [];
+      words.forEach(w => {
+        if (!w) return;
+        (w.sentences || []).forEach((s, i) => {
+          const key = `${w.id}-${i}`;
+          if (czPlayedKeys.has(key)) return;
+          if (!czTokenFor(w.word, s.sentence_de || '')) return; // skip unusable sentences
+          out.push({ w, s, key });
+        });
+      });
+      return out;
+    }
+
+    let pool = pairs([...unitWordIds].map(id => byId[id]));
+    if (pool.length) return pool;
+
+    // All unit pairs played — reset and retry units
+    if (unitWordIds.size) {
+      czPlayedKeys = new Set();
+      return pairs([...unitWordIds].map(id => byId[id]));
+    }
+
+    // Fall back through levels
+    for (let i = userLevelIdx; i >= 0; i--) {
+      pool = pairs(DECK.filter(w => w.level === LEVELS[i]));
+      if (pool.length) return pool;
+    }
+
+    czPlayedKeys = new Set();
+    return pairs(DECK);
+  }
+
+  function czPick() {
+    const pool = czBuildPool();
+    if (!pool.length) {
+      $('#cloze-sentence').innerHTML = '<span style="color:var(--muted)">No sentences available yet — complete a lesson first!</span>';
+      $('#cloze-options').innerHTML = '';
+      $('#cloze-word-label').textContent = '';
+      $('#cloze-translation').textContent = '';
+      return;
+    }
+
+    const { w, s, key } = pool[Math.floor(Math.random() * pool.length)];
+    czPlayedKeys.add(key);
+    czWord = w;
+    czSentence = s;
+    czAttempts = 0;
+    czRender();
+  }
+
+  function czRender() {
+    const answer = czWord.word;
+    const sentenceText = czSentence.sentence_de || '';
+    const token = czTokenFor(answer, sentenceText);
+    if (!token) { czPick(); return; }   // shouldn't happen (filtered in pool), safety fallback
+    czWord._matchedToken = token;
+    const escaped = token.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    const sentenceHtml = sentenceText.replace(new RegExp(escaped, 'i'),
+      `<span class="cloze-blank" id="cz-blank">___</span>`);
+
+    $('#cloze-word-label').textContent = `Fill in the missing word`;
+    $('#cloze-sentence').innerHTML = sentenceHtml;
+    $('#cloze-translation').textContent = '';   // hidden until wrong or solved
+    $('#cloze-attempts').textContent = czAttempts > 0 ? `Attempts: ${czAttempts} / 3` : '';
+    $('#cloze-result').style.display = 'none';
+
+    // Build 4 options: 1 correct (the matched token) + 3 random decoys from deck
+    const displayAnswer = czWord._matchedToken || answer;
+    const decoys = DECK
+      .filter(w => w.id !== czWord.id && w.word)
+      .sort(() => Math.random() - .5)
+      .slice(0, 3)
+      .map(w => w.word);
+    const options = [displayAnswer, ...decoys].sort(() => Math.random() - .5);
+
+    $('#cloze-options').innerHTML = options.map(opt =>
+      `<button class="cloze-opt" data-opt="${escapeHtml(opt)}">${escapeHtml(opt)}</button>`
+    ).join('');
+
+    $('#cloze-options').querySelectorAll('.cloze-opt').forEach(btn => {
+      btn.addEventListener('click', () => czGuess(btn, btn.dataset.opt));
+    });
+  }
+
+  function czGuess(btn, opt) {
+    czAttempts++;
+    const correct = opt.toLowerCase() === (czWord._matchedToken || czWord.word).toLowerCase();
+
+    if (correct) {
+      // Show correct word in blank
+      const blank = $('#cz-blank');
+      if (blank) { blank.textContent = czWord._matchedToken || czWord.word; blank.classList.add('correct'); }
+      btn.classList.add('correct');
+      // Dim other options
+      $('#cloze-options').querySelectorAll('.cloze-opt').forEach(b => {
+        if (b !== btn) b.classList.add('dim');
+        b.disabled = true;
+      });
+
+      const earned = czScoreForAttempts(czAttempts);
+      czSessionScore += earned;
+      czUpdateScoreBar();
+
+      const stars = earned > 0 ? '⭐'.repeat(earned) : '';
+      $('#cloze-result-msg').innerHTML = `🎉 Correct! &nbsp;${stars} <span style="font-size:1rem;font-weight:400">+${earned} score</span>`;
+      $('#cloze-result-msg').style.color = '#22c55e';
+      $('#cloze-translation').textContent = czSentence.sentence_en || '';
+      $('#cloze-result').style.display = '';
+
+    } else {
+      // Flash wrong
+      const blank = $('#cz-blank');
+      if (blank) { blank.classList.add('wrong'); setTimeout(() => blank.classList.remove('wrong'), 350); }
+      btn.classList.add('wrong');
+      btn.disabled = true;
+      setTimeout(() => btn.classList.remove('wrong'), 350);
+
+      if (czAttempts >= 3) {
+        // Reveal answer
+        const token = czWord._matchedToken || czWord.word;
+        if (blank) { blank.textContent = token; blank.classList.add('correct'); }
+        $('#cloze-options').querySelectorAll('.cloze-opt').forEach(b => {
+          if (b.dataset.opt.toLowerCase() === token.toLowerCase()) b.classList.add('correct');
+          b.disabled = true;
+          if (!b.classList.contains('correct')) b.classList.add('dim');
+        });
+        $('#cloze-translation').textContent = czSentence.sentence_en || '';
+        $('#cloze-result-msg').textContent = `💀 The answer was: ${czWord.word}`;
+        $('#cloze-result-msg').style.color = '#ef4444';
+        $('#cloze-result').style.display = '';
+      } else {
+        // Show hint after 2nd wrong
+        if (czAttempts >= 2) {
+          $('#cloze-translation').textContent = `Hint: ${czSentence.sentence_en || ''}`;
+        }
+        $('#cloze-attempts').textContent = `Attempts: ${czAttempts} / 3`;
+      }
+    }
+  }
+
+  function czReset() {
+    czWord = null; czSentence = null; czAttempts = 0;
+    czSessionScore = 0; czPlayedKeys = new Set();
+  }
+})();
+
+// ── SSE real-time push (incoming call ring, inbox refresh) ───────────────────
+(function () {
+  let _ringRoomId = null;
+  const banner     = document.getElementById('ring-banner');
+  const ringText   = document.getElementById('ring-text');
+  const acceptBtn  = document.getElementById('ring-accept');
+  const declineBtn = document.getElementById('ring-decline');
+  let _dismissTimer = null;
+  let _ringInterval = null;
+
+  // Create AudioContext once on first user gesture so browser allows it
+  let _audioCtx = null;
+  function _getAudioCtx() {
+    if (!_audioCtx) {
+      try { _audioCtx = new (window.AudioContext || window.webkitAudioContext)(); } catch { return null; }
+    }
+    return _audioCtx;
+  }
+  // Prime on any interaction
+  document.addEventListener('click', () => _getAudioCtx(), { once: false, passive: true });
+  document.addEventListener('keydown', () => _getAudioCtx(), { once: false, passive: true });
+
+  function _beep(ctx, startAt, duration) {
+    [480, 420].forEach(freq => {
+      const osc  = ctx.createOscillator();
+      const gain = ctx.createGain();
+      osc.connect(gain);
+      gain.connect(ctx.destination);
+      osc.type = 'sine';
+      osc.frequency.value = freq;
+      const t0 = ctx.currentTime + startAt;
+      gain.gain.setValueAtTime(0, t0);
+      gain.gain.linearRampToValueAtTime(0.28, t0 + 0.02);
+      gain.gain.setValueAtTime(0.28, t0 + duration - 0.05);
+      gain.gain.linearRampToValueAtTime(0, t0 + duration);
+      osc.start(t0);
+      osc.stop(t0 + duration);
+    });
+  }
+
+  function _doRing() {
+    const ctx = _getAudioCtx();
+    if (!ctx) return;
+    // resume in case browser suspended it
+    if (ctx.state === 'suspended') ctx.resume();
+    _beep(ctx, 0,   0.4);
+    _beep(ctx, 0.5, 0.4);
+  }
+
+  function _playRingTone() {
+    _doRing();
+    _ringInterval = setInterval(_doRing, 2000);
+  }
+
+  function _stopRingTone() {
+    clearInterval(_ringInterval);
+    _ringInterval = null;
+  }
+
+  function showRing(callerName, roomId) {
+    _ringRoomId = roomId;
+    ringText.textContent = `📞 ${callerName} is calling you!`;
+    banner.style.display = 'flex';
+    _playRingTone();
+    clearTimeout(_dismissTimer);
+    _dismissTimer = setTimeout(hideRing, 40000);
+    if (document.hidden && Notification.permission === 'granted') {
+      new Notification(`📞 ${callerName} is calling you!`, { body: 'Click Accept in the app to join.' });
+    }
+  }
+
+  function hideRing() {
+    _stopRingTone();
+    banner.style.display = 'none';
+    _ringRoomId = null;
+    clearTimeout(_dismissTimer);
+  }
+
+  acceptBtn.addEventListener('click', async () => {
+    const roomId = _ringRoomId;
+    hideRing();
+    if (!roomId) return;
+    const { valid } = await jreq(`/api/call/room/${roomId}`);
+    if (!valid) { toast('This call has already expired.'); return; }
+    startCall(roomId);
+  });
+
+  declineBtn.addEventListener('click', hideRing);
+
+  let _sseInst = null;
+  function connectSSE() {
+    if (!ME?.user) return;   // not logged in — skip silently
+    if (_sseInst) { _sseInst.close(); _sseInst = null; }
+    const es = new EventSource('/api/events');
+    _sseInst = es;
+    es.onmessage = e => {
+      try {
+        const msg = JSON.parse(e.data);
+        if (msg.type === 'incoming_call') {
+          showRing(msg.caller_name, msg.room_id);
+          loadInbox();
+        } else if (msg.type === 'inbox') {
+          loadInbox();
+        }
+      } catch {}
+    };
+    es.onerror = () => {
+      es.close();
+      _sseInst = null;
+      if (!ME?.user) return;   // logged out in the meantime — don't retry
+      setTimeout(connectSSE, 5000);
+    };
+  }
+
+  // connect once ME is populated (after init())
+  const _origInit = window._sseConnected;
+  window._connectSSE = connectSSE;
+  // If init() already ran and set ME, connect now
+  if (typeof ME !== 'undefined' && ME?.user) connectSSE();
+})();
+
+// ── WebRTC call system ────────────────────────────────────────────────────────
+(function () {
+  const ICE_SERVERS = [
+    { urls: 'stun:stun.l.google.com:19302' },
+    { urls: 'stun:stun1.l.google.com:19302' },
+  ];
+
+  let localStream = null;
+  let pc = null;
+  let ws = null;
+  let myRole = null;
+  let micMuted = false;
+  let camOff = false;
+
+  const modal    = document.getElementById('call-modal');
+  const localVid = document.getElementById('local-video');
+  const remoteVid= document.getElementById('remote-video');
+  const statusEl = document.getElementById('call-status');
+  const muteBtn  = document.getElementById('mute-btn');
+  const camBtn   = document.getElementById('cam-btn');
+  const hangupBtn= document.getElementById('hangup-btn');
+
+  muteBtn.addEventListener('click', () => {
+    if (!localStream) return;
+    micMuted = !micMuted;
+    localStream.getAudioTracks().forEach(t => t.enabled = !micMuted);
+    muteBtn.textContent = micMuted ? '🔇' : '🎤';
+    muteBtn.classList.toggle('muted', micMuted);
+  });
+
+  camBtn.addEventListener('click', () => {
+    if (!localStream) return;
+    camOff = !camOff;
+    localStream.getVideoTracks().forEach(t => t.enabled = !camOff);
+    camBtn.textContent = camOff ? '🚫' : '📷';
+    camBtn.classList.toggle('muted', camOff);
+  });
+
+  hangupBtn.addEventListener('click', () => {
+    wsSend({ type: 'bye' });
+    endCall();
+  });
+
+  window.startCall = async function (roomId) {
+    try {
+      localStream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
+    } catch (err) {
+      toast('Could not access camera/microphone: ' + err.message);
+      return;
+    }
+    localVid.srcObject = localStream;
+    modal.style.display = 'flex';
+    setStatus('Connecting…');
+
+    const proto = location.protocol === 'https:' ? 'wss' : 'ws';
+    ws = new WebSocket(`${proto}://${location.host}/ws/call/${roomId}`);
+    ws.onmessage = e => handleSignal(JSON.parse(e.data));
+    ws.onclose = () => { setStatus('Disconnected'); endCall(); };
+    ws.onerror = () => setStatus('Connection error');
+  };
+
+  async function handleSignal(msg) {
+    switch (msg.type) {
+      case 'role':
+        myRole = msg.role;
+        await setupPc();
+        setStatus(myRole === 'caller' ? 'Waiting for other person…' : 'Joining…');
+        break;
+      case 'ready':
+        if (myRole === 'caller') await createOffer();
+        break;
+      case 'offer':
+        await pc.setRemoteDescription(new RTCSessionDescription(msg));
+        const ans = await pc.createAnswer();
+        await pc.setLocalDescription(ans);
+        wsSend({ type: 'answer', sdp: ans.sdp });
+        setStatus('Answering…');
+        break;
+      case 'answer':
+        await pc.setRemoteDescription(new RTCSessionDescription(msg));
+        break;
+      case 'ice-candidate':
+        if (msg.candidate) try { await pc.addIceCandidate(new RTCIceCandidate(msg.candidate)); } catch {}
+        break;
+      case 'bye':
+        setStatus('Call ended');
+        endCall();
+        break;
+    }
+  }
+
+  async function setupPc() {
+    pc = new RTCPeerConnection({ iceServers: ICE_SERVERS });
+    localStream.getTracks().forEach(t => pc.addTrack(t, localStream));
+    pc.ontrack = e => {
+      if (remoteVid.srcObject !== e.streams[0]) {
+        remoteVid.srcObject = e.streams[0];
+        setStatus('Connected');
+      }
+    };
+    pc.onicecandidate = e => wsSend({ type: 'ice-candidate', candidate: e.candidate });
+    pc.onconnectionstatechange = () => {
+      if (pc.connectionState === 'connected') setStatus('Connected');
+      if (pc.connectionState === 'disconnected' || pc.connectionState === 'failed') endCall();
+    };
+    if (myRole === 'callee') wsSend({ type: 'ready' });
+  }
+
+  async function createOffer() {
+    const offer = await pc.createOffer();
+    await pc.setLocalDescription(offer);
+    wsSend({ type: 'offer', sdp: offer.sdp });
+    setStatus('Offer sent…');
+  }
+
+  function wsSend(msg) {
+    if (ws && ws.readyState === WebSocket.OPEN) ws.send(JSON.stringify(msg));
+  }
+
+  function endCall() {
+    if (localStream) { localStream.getTracks().forEach(t => t.stop()); localStream = null; }
+    if (pc) { pc.close(); pc = null; }
+    if (ws) { ws.close(); ws = null; }
+    localVid.srcObject = null;
+    remoteVid.srcObject = null;
+    micMuted = false; camOff = false;
+    muteBtn.textContent = '🎤'; camBtn.textContent = '📷';
+    muteBtn.classList.remove('muted'); camBtn.classList.remove('muted');
+    setTimeout(() => { modal.style.display = 'none'; }, 1500);
+  }
+
+  function setStatus(text) { if (statusEl) statusEl.textContent = text; }
+})();
 </script>
 </body>
 </html>

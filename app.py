@@ -7,11 +7,12 @@ users) persists per-user progress. Google login is optional.
 import os
 import re
 import secrets
+import threading
 from pathlib import Path
 
 from dotenv import load_dotenv
 from fastapi import FastAPI, File, HTTPException, Request, UploadFile
-from fastapi.responses import FileResponse, RedirectResponse
+from fastapi.responses import FileResponse, RedirectResponse, StreamingResponse
 from pydantic import BaseModel, Field
 from starlette.middleware.sessions import SessionMiddleware
 
@@ -407,6 +408,19 @@ def api_words(request: Request, career: str | None = None):
     return db.list_words(career, user["id"] if user else None)
 
 
+# Prevents duplicate Ollama/AI calls for the same (word, career) when multiple
+# requests arrive concurrently (e.g. user refreshes mid-generation).
+_gen_locks: dict[tuple, threading.Lock] = {}
+_gen_locks_mu = threading.Lock()
+
+def _get_gen_lock(word_id: int, career: str) -> threading.Lock:
+    key = (word_id, career)
+    with _gen_locks_mu:
+        if key not in _gen_locks:
+            _gen_locks[key] = threading.Lock()
+        return _gen_locks[key]
+
+
 @app.post("/api/words/{word_id}/generate")
 def api_generate_sentences(word_id: int, body: GenerateIn, request: Request):
     """Generate career-specific example sentences for a word via the AI provider
@@ -429,15 +443,19 @@ def api_generate_sentences(word_id: int, body: GenerateIn, request: Request):
 
     inserted = []
     if not cached:
-        provider = get_ai()
-        if not provider.available():
-            db.log_event("generate", "error", "AI not configured", uid, word_id, body.career)
-            raise HTTPException(503, "AI sentence generation is not configured on this server.")
-        pairs = provider.generate_sentences(words[word_id]["word"], body.career, body.level, body.n)
-        if not pairs:
-            db.log_event("generate", "error", "AI returned no sentences", uid, word_id, body.career)
-            raise HTTPException(502, "The AI provider returned no usable sentences.")
-        inserted = db.add_career_sentences(word_id, body.career, pairs)
+        with _get_gen_lock(word_id, body.career):
+            # Re-check inside the lock — another request may have just finished
+            if db.career_sentence_count(word_id, body.career) == 0:
+                provider = get_ai()
+                if not provider.available():
+                    db.log_event("generate", "error", "AI not configured", uid, word_id, body.career)
+                    raise HTTPException(503, "AI sentence generation is not configured on this server.")
+                pairs = provider.generate_sentences(words[word_id]["word"], body.career, body.level, body.n)
+                if not pairs:
+                    db.log_event("generate", "error", "AI returned no sentences", uid, word_id, body.career)
+                    raise HTTPException(502, "The AI provider returned no usable sentences.")
+                inserted = db.add_career_sentences(word_id, body.career, pairs)
+            cached = True  # sentences now exist (either just generated or by the concurrent winner)
 
     tokens = user.get("tokens")
     if charge_needed:
@@ -769,3 +787,118 @@ def api_put_learning(body: LearningIn, request: Request):
     user = require_user(request)
     db.save_learning(user["id"], body.learned, body.wrong)
     return {"ok": True}
+
+
+@app.get("/api/careers")
+def api_careers(request: Request):
+    return db.career_suggestions()
+
+
+@app.get("/api/score")
+def api_score(request: Request):
+    user = require_user(request)
+    return db.get_user_score(user["id"])
+
+
+@app.get("/api/inbox")
+def api_inbox(request: Request):
+    user = require_user(request)
+    return db.get_inbox(user["id"])
+
+
+@app.post("/api/inbox/{message_id}/read")
+def api_inbox_read(message_id: int, request: Request):
+    user = require_user(request)
+    db.mark_read(user["id"], message_id)
+    return {"ok": True}
+
+
+@app.post("/api/inbox/read-all")
+def api_inbox_read_all(request: Request):
+    user = require_user(request)
+    db.mark_read(user["id"])
+    return {"ok": True}
+
+
+class UnitIn(BaseModel):
+    title: str = Field(min_length=1)
+    level: str = "B1"
+    token_cost: int = Field(default=0, ge=0)
+    quiz_score: int = Field(default=6, ge=0)
+    position: int = 0
+
+
+class UnitWordsIn(BaseModel):
+    word_ids: list[int] = []
+
+
+@app.get("/api/units")
+def api_list_units(request: Request):
+    user = current_user(request)
+    uid = user["id"] if user else None
+    return db.list_units(user_id=uid)
+
+
+@app.post("/api/units")
+def api_create_unit(body: UnitIn, request: Request):
+    require_admin(request)
+    uid = db.save_unit(body.title, body.level, body.token_cost, body.position, quiz_score=body.quiz_score)
+    return db.get_unit(uid)
+
+
+@app.put("/api/units/{unit_id}")
+def api_update_unit(unit_id: int, body: UnitIn, request: Request):
+    require_admin(request)
+    db.save_unit(body.title, body.level, body.token_cost, body.position, unit_id=unit_id, quiz_score=body.quiz_score)
+    return db.get_unit(unit_id)
+
+
+@app.delete("/api/units/{unit_id}")
+def api_delete_unit(unit_id: int, request: Request):
+    require_admin(request)
+    db.delete_unit(unit_id)
+    return {"ok": True}
+
+
+@app.put("/api/units/{unit_id}/words")
+def api_set_unit_words(unit_id: int, body: UnitWordsIn, request: Request):
+    require_admin(request)
+    db.set_unit_words(unit_id, body.word_ids)
+    return {"ok": True}
+
+
+@app.post("/api/units/{unit_id}/unlock")
+def api_unlock_unit(unit_id: int, request: Request):
+    user = require_user(request)
+    result = db.unlock_unit(user["id"], unit_id)
+    if not result.get("ok"):
+        reason = result.get("reason", "")
+        if reason == "prev_incomplete":
+            raise HTTPException(409, "Finish the previous unit first.")
+        if reason == "insufficient":
+            raise HTTPException(402, "Not enough tokens.")
+        raise HTTPException(400, reason)
+    return result
+
+
+@app.post("/api/units/{unit_id}/score")
+def api_unit_score(unit_id: int, request: Request):
+    user = require_user(request)
+    awarded = db.award_unit_score(user["id"], unit_id)
+    return {"awarded": awarded, "score": db.get_user_score(user["id"])}
+
+
+@app.get("/api/events")
+async def api_events(request: Request):
+    require_user(request)
+
+    async def stream():
+        # Keep the connection alive with periodic comments; no events to send yet.
+        while True:
+            if await request.is_disconnected():
+                break
+            yield ": keep-alive\n\n"
+            import asyncio
+            await asyncio.sleep(30)
+
+    return StreamingResponse(stream(), media_type="text/event-stream")

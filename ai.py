@@ -86,7 +86,12 @@ def _parse_sentences(text):
     try:
         data = json.loads(text)
     except (ValueError, TypeError):
-        return []
+        # Truncated JSON — salvage any complete {"de": ..., "en": ...} objects
+        pairs = re.findall(
+            r'\{\s*"de"\s*:\s*"([^"]+)"\s*,\s*"en"\s*:\s*"([^"]+)"\s*\}',
+            text,
+        )
+        return [(de.strip(), en.strip()) for de, en in pairs] if pairs else []
     out = []
     for item in (data.get("sentences") or []):
         de = (item.get("de") or "").strip()
@@ -217,8 +222,73 @@ class GeminiProvider(AIProvider):
             return ""
 
 
+class OllamaProvider(AIProvider):
+    """Local Ollama server — no API key needed, just a running ollama instance.
+
+    Defaults: base_url=http://localhost:11434, model=llama3.
+    Override via dashboard settings or OLLAMA_BASE_URL / OLLAMA_MODEL env vars.
+    """
+    name = "ollama"
+
+    def __init__(self):
+        self.base_url = (_setting("ollama_base_url", "OLLAMA_BASE_URL", "http://localhost:11434")
+                         or "http://localhost:11434").rstrip("/")
+        self.model = _setting("ollama_model", "OLLAMA_MODEL", "llama3") or "llama3"
+
+    def available(self):
+        return bool(self.base_url)
+
+    def _generate(self, prompt, retries=2):
+        """POST to /api/generate with retry on timeout. Returns raw text."""
+        import urllib.request
+        import json as _json
+        import logging
+        # /no_think suppresses qwen3's <think> block so output goes into "response"
+        full_prompt = prompt + "\n/no_think"
+        payload = _json.dumps({
+            "model": self.model,
+            "prompt": full_prompt,
+            "stream": False,
+            "options": {
+                "num_predict": 1024,
+                "temperature": 0.7,
+            },
+        }).encode()
+        log = logging.getLogger("ollama")
+        for attempt in range(1, retries + 2):
+            try:
+                req = urllib.request.Request(
+                    f"{self.base_url}/api/generate",
+                    data=payload,
+                    headers={"Content-Type": "application/json"},
+                    method="POST",
+                )
+                with urllib.request.urlopen(req, timeout=180) as resp:
+                    data = _json.loads(resp.read())
+                text = data.get("response", "").strip()
+                log.info("[ollama] attempt=%d reply: %s", attempt, text[:400])
+                return text
+            except TimeoutError:
+                log.warning("[ollama] timeout on attempt %d/%d", attempt, retries + 1)
+            except Exception as e:
+                log.error("[ollama] error: %s", e)
+                return ""
+        log.error("[ollama] all retries timed out")
+        return ""
+
+    def generate_sentences(self, word, career, level, n=3):
+        if not self.available():
+            return []
+        import logging
+        raw = self._generate(_build_prompt(word, career, level, n))
+        result = _parse_sentences(raw)
+        if not result:
+            logging.getLogger("ollama").warning("[ollama] parse returned empty. raw=%s", raw[:300])
+        return result[:n]
+
+
 # Register additional providers here (e.g. an OpenAI-backed one) to switch by price.
-PROVIDERS = {"claude": ClaudeProvider, "gemini": GeminiProvider}
+PROVIDERS = {"claude": ClaudeProvider, "gemini": GeminiProvider, "ollama": OllamaProvider}
 
 
 def get_provider():

@@ -20,6 +20,25 @@
   header a { color: var(--accent); text-decoration: none; font-size: .85rem; }
   .wrap { max-width: 1100px; margin: 0 auto; padding: 20px 22px 60px; }
   h2 { font-size: 1rem; margin: 28px 0 12px; color: var(--muted); text-transform: uppercase; letter-spacing: .04em; }
+  h2:first-child { margin-top: 4px; }
+  .dtabs { display: flex; gap: 4px; background: var(--panel); padding: 4px; border-radius: 11px; margin: 4px 0 18px; flex-wrap: wrap; position: sticky; top: 62px; z-index: 5; }
+  .dtab { flex: 1; min-width: 88px; background: none; border: none; color: var(--muted); padding: 9px 8px; border-radius: 8px; cursor: pointer; font-size: .85rem; font-weight: 600; }
+  .dtab.active { background: var(--bg); color: var(--text); box-shadow: 0 2px 6px rgba(0,0,0,.25); }
+  .tab-panel { display: none; } .tab-panel.active { display: block; }
+  .ctabs { display: flex; gap: 6px; margin-bottom: 14px; }
+  .ctab { background: var(--panel); border: 1px solid var(--border); color: var(--muted); padding: 7px 16px; border-radius: 8px; cursor: pointer; font-size: .85rem; font-weight: 600; }
+  .ctab.active { background: var(--panel-2); color: var(--text); border-color: var(--accent); }
+  .cpanel { display: none; } .cpanel.active { display: block; }
+  .cform { background: var(--panel); border: 1px solid var(--border); border-radius: 12px; padding: 16px; }
+  .cform h3 { margin: 0 0 12px; font-size: .95rem; }
+  .cform input, .cform select, .cform textarea { width: 100%; background: var(--bg); color: var(--text); border: 1px solid var(--border); border-radius: 8px; padding: 8px 10px; font-size: .85rem; margin-bottom: 8px; font-family: inherit; }
+  .cform .frow { display: flex; gap: 8px; } .cform .frow input, .cform .frow select { width: auto; flex: 1; }
+  .cform button { background: var(--accent); color: #06121f; border: none; border-radius: 8px; padding: 8px 14px; cursor: pointer; font-weight: 700; font-size: .82rem; }
+  .cform button#cw-cancel, .cform button#cu-cancel, .cform button#cr-cancel { background: var(--panel-2); color: var(--text); }
+  .csent { display: flex; justify-content: space-between; align-items: center; gap: 8px; font-size: .8rem; padding: 4px 0; border-bottom: 1px solid var(--border); }
+  .cu-words { display: grid; grid-template-columns: 1fr 1fr; gap: 4px 10px; max-height: 220px; overflow-y: auto; border: 1px solid var(--border); border-radius: 8px; padding: 8px; margin-bottom: 10px; }
+  .cu-words .uw { display: flex; align-items: center; gap: 6px; font-size: .82rem; }
+  .u-admin-row { display: flex; justify-content: space-between; align-items: center; gap: 8px; border: 1px solid var(--border); border-radius: 8px; padding: 8px 10px; margin-bottom: 6px; font-size: .82rem; }
   .cards { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 12px; }
   .card { background: var(--panel); border: 1px solid var(--border); border-radius: 12px; padding: 14px 16px; }
   .card .n { font-size: 1.7rem; font-weight: 800; }
@@ -119,6 +138,8 @@ function render(d) {
     card(s.errors, 'Errors', s.errors ? 'bad' : ''),
     card('€' + ((s.revenue_cents || 0) / 100).toFixed(2), 'Revenue', 'good'),
     card(s.purchases || 0, 'Purchases'),
+    card(s.referrals || 0, 'Referrals'),
+    card('🪙 ' + (s.referral_tokens_awarded || 0), 'Referral tokens'),
     card(s.words, 'Words'),
     card(s.ai_sentences + '/' + s.sentences, 'AI / total sentences'),
     card(s.readings, 'Readings'),
@@ -146,76 +167,304 @@ function render(d) {
   </tr>`).join('') || '<tr><td colspan="4" class="muted">No errors 🎉</td></tr>';
 
   $('#wrap').innerHTML = `
-    <h2>Overview</h2>
-    <div class="cards">${cards}</div>
-
-    <h2>AI provider &amp; API keys</h2>
-    <div id="ai-settings"></div>
-
-    <h2>Careers in use (${(d.careers || []).length})</h2>
-    <div class="chips">${careers}</div>
-
-    <h2>Token packages (PayPal)</h2>
-    <div class="scroll"><table>
-      <thead><tr><th>Tokens</th><th>Price</th><th>Status</th><th>Order</th><th></th></tr></thead>
-      <tbody id="pkg-body"></tbody>
-    </table></div>
-    <div class="pkg-form">
-      <input id="pk-tokens" type="number" min="1" placeholder="Tokens (e.g. 200)">
-      <input id="pk-price" type="number" min="0.5" step="0.01" placeholder="Price (e.g. 2.99)">
-      <input id="pk-cur" value="EUR" maxlength="3" style="width:60px">
-      <input id="pk-pos" type="number" value="0" title="Order" style="width:70px">
-      <label class="ck"><input type="checkbox" id="pk-active" checked> Active</label>
-      <button id="pkg-save">Add package</button>
-      <button id="pkg-cancel" style="display:none">Cancel</button>
-      <span id="pkg-status" class="muted"></span>
+    <div class="dtabs">
+      <button class="dtab" data-tab="overview">Overview</button>
+      <button class="dtab" data-tab="users">Users</button>
+      <button class="dtab" data-tab="content">Content</button>
+      <button class="dtab" data-tab="sales">Tokens &amp; Sales</button>
+      <button class="dtab" data-tab="ai">AI</button>
+      <button class="dtab" data-tab="logs">Logs</button>
     </div>
 
-    <h2>Recent purchases (${(d.recent_purchases || []).length})</h2>
-    <div class="scroll"><table>
-      <thead><tr><th>When</th><th>User</th><th>Tokens</th><th>Amount</th><th>Provider ref</th></tr></thead>
-      <tbody>${(d.recent_purchases || []).map(p => `<tr>
-        <td class="muted">${fmtTime(p.created_at)}</td><td>${esc(p.email || '—')}</td>
-        <td>+${p.tokens}</td><td class="tok">${(p.price_cents/100).toFixed(2)} ${esc(p.currency)}</td>
-        <td class="muted">${esc(p.provider_ref || '')}</td></tr>`).join('')
-        || '<tr><td colspan="5" class="muted">No purchases yet.</td></tr>'}</tbody>
-    </table></div>
+    <div class="tab-panel" data-panel="content">
+      <div class="ctabs">
+        <button class="ctab active" data-ctab="words">Words</button>
+        <button class="ctab" data-ctab="units">Units</button>
+        <button class="ctab" data-ctab="readings">Readings</button>
+      </div>
+      <div class="cpanel active" data-cpanel="words" id="cwords"><div class="muted">Loading…</div></div>
+      <div class="cpanel" data-cpanel="units" id="cunits"></div>
+      <div class="cpanel" data-cpanel="readings" id="creadings"></div>
+    </div>
 
-    <h2>Users &amp; progress</h2>
-    <div class="scroll"><table>
-      <thead><tr><th>User</th><th>Career</th><th>Level</th><th>Tokens</th><th>Words units</th><th>Readings</th><th>Learned</th><th>AI charges</th><th>Last seen</th><th>Joined</th><th>Add tokens</th></tr></thead>
-      <tbody id="users-body"></tbody>
-    </table></div>
-    <div class="pager" id="users-pager"></div>
+    <div class="tab-panel" data-panel="overview">
+      <h2>Overview</h2>
+      <div class="cards">${cards}</div>
+      <h2>Careers in use (${(d.careers || []).length})</h2>
+      <div class="chips">${careers}</div>
+    </div>
 
-    <h2>Recent API calls (${d.recent_logs.length})</h2>
-    <div class="scroll"><table>
-      <thead><tr><th>When</th><th>User</th><th>Status</th><th>Word</th><th>Career</th><th>Detail</th></tr></thead>
-      <tbody>${logs}</tbody>
-    </table></div>
+    <div class="tab-panel" data-panel="users">
+      <h2>Users &amp; progress</h2>
+      <div class="scroll"><table>
+        <thead><tr><th>User</th><th>Career</th><th>Level</th><th>Tokens</th><th>Words units</th><th>Readings</th><th>Learned</th><th>AI charges</th><th>Last seen</th><th>Joined</th><th>Add tokens</th></tr></thead>
+        <tbody id="users-body"></tbody>
+      </table></div>
+      <div class="pager" id="users-pager"></div>
+    </div>
 
-    <h2>Error log (${d.error_logs.length})</h2>
-    <div class="scroll"><table>
-      <thead><tr><th>When</th><th>User</th><th>Career</th><th>Error</th></tr></thead>
-      <tbody>${errs}</tbody>
-    </table></div>
+    <div class="tab-panel" data-panel="sales">
+      <h2>Token packages (PayPal)</h2>
+      <div class="scroll"><table>
+        <thead><tr><th>Tokens</th><th>Price</th><th>Status</th><th>Order</th><th></th></tr></thead>
+        <tbody id="pkg-body"></tbody>
+      </table></div>
+      <div class="pkg-form">
+        <input id="pk-tokens" type="number" min="1" placeholder="Tokens (e.g. 200)">
+        <input id="pk-price" type="number" min="0.5" step="0.01" placeholder="Price (e.g. 2.99)">
+        <input id="pk-cur" value="EUR" maxlength="3" style="width:60px">
+        <input id="pk-pos" type="number" value="0" title="Order" style="width:70px">
+        <label class="ck"><input type="checkbox" id="pk-active" checked> Active</label>
+        <button id="pkg-save">Add package</button>
+        <button id="pkg-cancel" style="display:none">Cancel</button>
+        <span id="pkg-status" class="muted"></span>
+      </div>
+      <h2>Recent purchases (${(d.recent_purchases || []).length})</h2>
+      <div class="scroll"><table>
+        <thead><tr><th>When</th><th>User</th><th>Tokens</th><th>Amount</th><th>Provider ref</th></tr></thead>
+        <tbody>${(d.recent_purchases || []).map(p => `<tr>
+          <td class="muted">${fmtTime(p.created_at)}</td><td>${esc(p.email || '—')}</td>
+          <td>+${p.tokens}</td><td class="tok">${(p.price_cents/100).toFixed(2)} ${esc(p.currency)}</td>
+          <td class="muted">${esc(p.provider_ref || '')}</td></tr>`).join('')
+          || '<tr><td colspan="5" class="muted">No purchases yet.</td></tr>'}</tbody>
+      </table></div>
+    </div>
 
-    <h2>Access log — request headers (${(d.access_logs || []).length})</h2>
-    <div class="scroll"><table>
-      <thead><tr><th>When</th><th>User</th><th>Event</th><th>IP</th><th>Browser / device</th><th>Language</th><th>Referer</th></tr></thead>
-      <tbody>${(d.access_logs || []).map(a => `<tr>
-        <td class="muted">${fmtTime(a.created_at)}</td>
-        <td>${esc(a.email || '—')}</td>
-        <td><span class="pill cached">${esc(a.event || '')}</span></td>
-        <td>${esc(a.ip || '—')}</td>
-        <td title="${esc(a.user_agent || '')}">${uaShort(a.user_agent)}</td>
-        <td class="muted">${esc((a.language || '—').split(',')[0])}</td>
-        <td class="muted">${esc(a.referer || '—')}</td>
-      </tr>`).join('') || '<tr><td colspan="7" class="muted">No access records yet.</td></tr>'}</tbody>
-    </table></div>`;
+    <div class="tab-panel" data-panel="ai">
+      <h2>AI provider &amp; API keys</h2>
+      <div id="ai-settings"></div>
+    </div>
+
+    <div class="tab-panel" data-panel="logs">
+      <h2>Recent API calls (${d.recent_logs.length})</h2>
+      <div class="scroll"><table>
+        <thead><tr><th>When</th><th>User</th><th>Status</th><th>Word</th><th>Career</th><th>Detail</th></tr></thead>
+        <tbody>${logs}</tbody>
+      </table></div>
+      <h2>Error log (${d.error_logs.length})</h2>
+      <div class="scroll"><table>
+        <thead><tr><th>When</th><th>User</th><th>Career</th><th>Error</th></tr></thead>
+        <tbody>${errs}</tbody>
+      </table></div>
+      <h2>Access log — request headers (${(d.access_logs || []).length})</h2>
+      <div class="scroll"><table>
+        <thead><tr><th>When</th><th>User</th><th>Event</th><th>IP</th><th>Browser / device</th><th>Language</th><th>Referer</th></tr></thead>
+        <tbody>${(d.access_logs || []).map(a => `<tr>
+          <td class="muted">${fmtTime(a.created_at)}</td>
+          <td>${esc(a.email || '—')}</td>
+          <td><span class="pill cached">${esc(a.event || '')}</span></td>
+          <td>${esc(a.ip || '—')}</td>
+          <td title="${esc(a.user_agent || '')}">${uaShort(a.user_agent)}</td>
+          <td class="muted">${esc((a.language || '—').split(',')[0])}</td>
+          <td class="muted">${esc(a.referer || '—')}</td>
+        </tr>`).join('') || '<tr><td colspan="7" class="muted">No access records yet.</td></tr>'}</tbody>
+      </table></div>
+    </div>`;
+  document.querySelectorAll('.dtab').forEach(b => b.onclick = () => showTab(b.dataset.tab));
   renderUsers();
   renderPackages();
   renderSettings();
+  showTab(currentTab);
+}
+
+let currentTab = 'overview';
+function showTab(name) {
+  currentTab = name;
+  document.querySelectorAll('.dtab').forEach(b => b.classList.toggle('active', b.dataset.tab === name));
+  document.querySelectorAll('.tab-panel').forEach(p => p.classList.toggle('active', p.dataset.panel === name));
+  if (name === 'content') loadContent();
+  document.querySelectorAll('.ctab').forEach(b => b.onclick = () => showCtab(b.dataset.ctab));
+}
+function showCtab(name) {
+  document.querySelectorAll('.ctab').forEach(b => b.classList.toggle('active', b.dataset.ctab === name));
+  document.querySelectorAll('.cpanel').forEach(p => p.classList.toggle('active', p.dataset.cpanel === name));
+}
+
+// ===== Content management (words / units / readings) =====
+let CWORDS = [], CUNITS = [], CREADINGS = [];
+const LEVELS = ['A1', 'A2', 'B1', 'B2', 'C1', 'C2'];
+let _contentLoaded = false;
+async function loadContent(force) {
+  if (_contentLoaded && !force) return;
+  try {
+    [CWORDS, CUNITS, CREADINGS] = await Promise.all([
+      fetch('/api/words').then(r => r.json()),
+      fetch('/api/units').then(r => r.json()),
+      fetch('/api/readings').then(r => r.json()),
+    ]);
+    _contentLoaded = true;
+  } catch { $('#cwords').innerHTML = '<div class="muted">Failed to load content.</div>'; return; }
+  renderWordsAdmin(); renderUnitsAdmin(); renderReadingsAdmin();
+}
+const levelOptions = (sel) => LEVELS.map(l => `<option value="${l}"${l === sel ? ' selected' : ''}>${l}</option>`).join('');
+function cstatus(id, msg, ok) { const e = $('#' + id); if (e) { e.style.color = ok ? 'var(--good)' : 'var(--bad)'; e.textContent = msg; } }
+
+// ----- Words -----
+let wEditId = null, wPage = 0;
+function renderWordsAdmin() {
+  $('#cwords').innerHTML = `
+    <div class="cform">
+      <h3 id="cw-title">Add word</h3>
+      <div class="frow"><input id="cw-word" placeholder="German word (e.g. die Beratung)">
+        <input id="cw-cat" value="general" placeholder="topic (e.g. kubernetes)" style="width:140px" title="Topic — admin label for browsing/filtering">
+        <select id="cw-level">${levelOptions('B1')}</select></div>
+      <div class="frow"><input id="cw-lemma" placeholder="Lemma(s)"><input id="cw-pos" placeholder="Part of speech (Adjektiv)">
+        <input id="cw-article" placeholder="Article (der/die/das)" style="width:150px"></div>
+      <input id="cw-url" placeholder="Audio URL (mp3) — e.g. https://www.dwds.de/audio/002/die_Beratung.mp3">
+      <input id="cw-wordurl" placeholder="Word page URL — e.g. https://www.dwds.de/wb/abbiegen">
+      <input id="cw-meanings" placeholder='Meanings — comma separated, e.g. deployment, provisioning, rollout' title="One or more English meanings for this word">
+      <div id="cw-sents"></div>
+      <textarea id="cw-newsents" rows="3" placeholder="Add sentences — one per line as:  German | English"></textarea>
+      <div><button id="cw-save">Save word</button> <button id="cw-cancel" style="display:none">Cancel</button> <span id="cw-status" class="muted"></span></div>
+    </div>
+    <input id="cw-search" placeholder="Search words…" style="margin:14px 0 8px;width:100%">
+    <div class="scroll"><table><thead><tr><th>Word</th><th>Level</th><th>POS</th><th>Audio</th><th>Sent.</th><th></th></tr></thead><tbody id="cw-body"></tbody></table></div>
+    <div class="pager" id="cw-pager"></div>`;
+  $('#cw-save').onclick = saveWord; $('#cw-cancel').onclick = resetWordForm;
+  $('#cw-search').oninput = () => { wPage = 0; renderWordRows(); };
+  renderWordRows();
+}
+function renderWordRows() {
+  const q = ($('#cw-search')?.value || '').trim().toLowerCase();
+  const all = q ? CWORDS.filter(w => (w.word || '').toLowerCase().includes(q)) : CWORDS;
+  const pages = Math.max(1, Math.ceil(all.length / 20)); if (wPage >= pages) wPage = pages - 1;
+  const slice = all.slice(wPage * 20, wPage * 20 + 20);
+  $('#cw-body').innerHTML = slice.map(w => `<tr>
+    <td><b>${esc(w.word)}</b>${w.lemma ? ` <span class="muted">${esc(w.lemma)}</span>` : ''}${(w.meanings||[]).length ? `<br><span class="muted" style="font-size:.72rem">${w.meanings.map(esc).join(' · ')}</span>` : ''}</td>
+    <td>${esc(w.level || 'B1')}</td><td>${esc(w.pos || '—')}</td><td>${w.audio_url ? '🔊' : '—'}${w.word_url ? ' 📖' : ''}</td><td>${(w.sentences || []).length}</td>
+    <td class="nowrap"><button class="r-del" data-wedit="${w.id}">Edit</button><button class="r-del" data-wdel="${w.id}">Del</button></td></tr>`).join('')
+    || '<tr><td colspan="6" class="muted">No words.</td></tr>';
+  $('#cw-pager').innerHTML = pages > 1
+    ? `<button id="cw-prev" ${wPage === 0 ? 'disabled' : ''}>‹ Prev</button><span class="muted">Page ${wPage + 1}/${pages} · ${all.length} words</span><button id="cw-next" ${wPage >= pages - 1 ? 'disabled' : ''}>Next ›</button>`
+    : `<span class="muted">${all.length} words</span>`;
+  if ($('#cw-prev')) $('#cw-prev').onclick = () => { wPage--; renderWordRows(); };
+  if ($('#cw-next')) $('#cw-next').onclick = () => { wPage++; renderWordRows(); };
+  document.querySelectorAll('[data-wedit]').forEach(b => b.onclick = () => editWord(+b.dataset.wedit));
+  document.querySelectorAll('[data-wdel]').forEach(b => b.onclick = async () => {
+    if (!confirm('Delete this word for everyone?')) return;
+    await fetch('/api/words/' + b.dataset.wdel, { method: 'DELETE' }); await loadContent(true);
+  });
+}
+function editWord(id) {
+  const w = CWORDS.find(x => x.id === id); if (!w) return;
+  wEditId = id; $('#cw-title').textContent = 'Edit word';
+  $('#cw-word').value = w.word || ''; $('#cw-cat').value = w.topic || w.category || 'general'; $('#cw-level').value = w.level || 'B1';
+  $('#cw-lemma').value = w.lemma || ''; $('#cw-pos').value = w.pos || ''; $('#cw-article').value = w.article || ''; $('#cw-url').value = w.audio_url || ''; $('#cw-wordurl').value = w.word_url || '';
+  $('#cw-meanings').value = (w.meanings || []).join(', ');
+  $('#cw-newsents').value = '';
+  const gen = (w.sentences || []).filter(s => !s.career);
+  $('#cw-sents').innerHTML = gen.length ? '<div class="muted" style="font-size:.74rem;margin:6px 0 2px">Existing sentences:</div>'
+    + gen.map(s => `<div class="csent"><span>${esc(s.sentence_de)} <span class="muted">— ${esc(s.sentence_en)}</span></span><button class="r-del" data-sdel="${s.id}">✕</button></div>`).join('') : '';
+  document.querySelectorAll('[data-sdel]').forEach(b => b.onclick = async () => {
+    await fetch('/api/sentences/' + b.dataset.sdel, { method: 'DELETE' }); await loadContent(true);
+    showCtab('words'); editWord(id);
+  });
+  $('#cw-cancel').style.display = ''; $('#cw-save').textContent = 'Save changes';
+  $('#cw-word').scrollIntoView({ behavior: 'smooth', block: 'center' });
+}
+function resetWordForm() {
+  wEditId = null;
+  ['cw-word', 'cw-lemma', 'cw-pos', 'cw-article', 'cw-url', 'cw-wordurl', 'cw-newsents', 'cw-meanings'].forEach(i => { if ($('#' + i)) $('#' + i).value = ''; });
+  if ($('#cw-cat')) $('#cw-cat').value = 'general'; if ($('#cw-level')) $('#cw-level').value = 'B1';
+  if ($('#cw-sents')) $('#cw-sents').innerHTML = '';
+  if ($('#cw-title')) $('#cw-title').textContent = 'Add word';
+  if ($('#cw-save')) $('#cw-save').textContent = 'Save word';
+  if ($('#cw-cancel')) $('#cw-cancel').style.display = 'none';
+}
+async function saveWord() {
+  const word = $('#cw-word').value.trim();
+  if (!word) { cstatus('cw-status', 'Enter the word.', false); return; }
+  const sentences = $('#cw-newsents').value.split('\n').map(l => { const [de, en] = l.split('|'); return { sentence_de: (de || '').trim(), sentence_en: (en || '').trim() }; }).filter(s => s.sentence_de && s.sentence_en);
+  const meanings = $('#cw-meanings').value.split(',').map(s => s.trim()).filter(Boolean);
+  const body = { word, topic: $('#cw-cat').value.trim() || 'general', level: $('#cw-level').value, lemma: $('#cw-lemma').value.trim(), pos: $('#cw-pos').value.trim(), article: $('#cw-article').value.trim(), audio_url: $('#cw-url').value.trim(), word_url: $('#cw-wordurl').value.trim(), sentences, meanings };
+  const r = await fetch('/api/words', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
+  if (!r.ok) { cstatus('cw-status', 'Failed to save.', false); return; }
+  resetWordForm(); await loadContent(true); cstatus('cw-status', `✓ Saved "${word}"`, true);
+}
+
+// ----- Units -----
+let uEditId = null;
+function renderUnitsAdmin() {
+  $('#cunits').innerHTML = `
+    <div class="cform">
+      <h3 id="cu-title">Add unit</h3>
+      <input id="cu-title-in" placeholder="Unit title (e.g. At the office)">
+      <div class="frow"><select id="cu-level">${levelOptions('B1')}</select>
+        <input id="cu-cost" type="number" min="0" value="0" placeholder="Token cost" style="width:130px">
+        <input id="cu-pos" type="number" value="0" placeholder="Order" style="width:90px"></div>
+      <div class="muted" style="font-size:.74rem;margin:8px 0 2px">Words in this unit (from the selected level):</div>
+      <div id="cu-words" class="cu-words"></div>
+      <div><button id="cu-save">Save unit</button> <button id="cu-cancel" style="display:none">Cancel</button> <span id="cu-status" class="muted"></span></div>
+    </div>
+    <div id="cu-list" style="margin-top:14px"></div>`;
+  $('#cu-save').onclick = saveUnit; $('#cu-cancel').onclick = resetUnitForm; $('#cu-level').onchange = renderUnitWordsAdmin;
+  renderUnitWordsAdmin(); renderUnitList();
+}
+function renderUnitList() {
+  $('#cu-list').innerHTML = CUNITS.length ? CUNITS.map(u => `<div class="u-admin-row"><span><b>${esc(u.title)}</b> <span class="muted">· ${esc(u.level)} · ${u.token_cost}🪙 · ${(u.word_ids || []).length} words · #${u.position}</span></span><span class="nowrap"><button class="r-del" data-uedit="${u.id}">Edit</button><button class="r-del" data-udel="${u.id}">Del</button></span></div>`).join('') : '<div class="muted">No units yet.</div>';
+  document.querySelectorAll('[data-uedit]').forEach(b => b.onclick = () => editUnit(+b.dataset.uedit));
+  document.querySelectorAll('[data-udel]').forEach(b => b.onclick = async () => { if (!confirm('Delete this unit? Its words become unassigned.')) return; await fetch('/api/units/' + b.dataset.udel, { method: 'DELETE' }); await loadContent(true); });
+}
+function renderUnitWordsAdmin() {
+  const lvl = $('#cu-level').value;
+  const editing = uEditId ? ((CUNITS.find(u => u.id === uEditId) || {}).word_ids || []) : [];
+  const byUnit = {}; CUNITS.forEach(u => (u.word_ids || []).forEach(id => byUnit[id] = u));
+  const words = CWORDS.filter(w => (w.level || 'B1') === lvl).sort((a, b) => a.id - b.id);
+  $('#cu-words').innerHTML = words.length ? words.map(w => { const inThis = editing.includes(w.id); const other = byUnit[w.id] && byUnit[w.id].id !== uEditId ? byUnit[w.id] : null; return `<label class="uw"><input type="checkbox" value="${w.id}"${inThis ? ' checked' : ''}> ${esc(w.word)}${other ? ` <span class="muted">(${esc(other.title)})</span>` : ''}</label>`; }).join('') : '<div class="muted" style="font-size:.8rem">No words at this level.</div>';
+}
+function editUnit(id) { const u = CUNITS.find(x => x.id === id); if (!u) return; uEditId = id; $('#cu-title').textContent = 'Edit unit'; $('#cu-title-in').value = u.title; $('#cu-level').value = u.level; $('#cu-cost').value = u.token_cost; $('#cu-pos').value = u.position; $('#cu-save').textContent = 'Save changes'; $('#cu-cancel').style.display = ''; renderUnitWordsAdmin(); }
+function resetUnitForm() { uEditId = null; if ($('#cu-title-in')) { $('#cu-title-in').value = ''; $('#cu-cost').value = 0; $('#cu-pos').value = 0; $('#cu-title').textContent = 'Add unit'; $('#cu-save').textContent = 'Save unit'; $('#cu-cancel').style.display = 'none'; renderUnitWordsAdmin(); } }
+async function saveUnit() {
+  const title = $('#cu-title-in').value.trim();
+  if (!title) { cstatus('cu-status', 'Enter a title.', false); return; }
+  const body = { title, level: $('#cu-level').value, token_cost: parseInt($('#cu-cost').value, 10) || 0, position: parseInt($('#cu-pos').value, 10) || 0 };
+  if (uEditId) body.id = uEditId;
+  const res = await (await fetch('/api/units', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) })).json();
+  const ids = [...document.querySelectorAll('#cu-words input:checked')].map(c => +c.value);
+  await fetch('/api/units/' + res.id + '/words', { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ word_ids: ids }) });
+  resetUnitForm(); await loadContent(true); cstatus('cu-status', `✓ Saved "${title}"`, true);
+}
+
+// ----- Readings -----
+let rEditId = null;
+function renderReadingsAdmin() {
+  $('#creadings').innerHTML = `
+    <div class="cform">
+      <h3 id="cr-title">Add reading</h3>
+      <input id="cr-title-in" placeholder="Story title">
+      <div class="frow"><select id="cr-level">${levelOptions('B1')}</select><input id="cr-pos" type="number" value="0" placeholder="Order" style="width:90px"></div>
+      <textarea id="cr-body" rows="6" placeholder="The story in German (Markdown supported)"></textarea>
+      <input id="cr-audio" placeholder="Audio URL (mp3 / Drive link) — optional">
+      <input id="cr-file" type="file" accept="audio/*">
+      <div><button id="cr-save">Save reading</button> <button id="cr-cancel" style="display:none">Cancel</button> <span id="cr-status" class="muted"></span></div>
+    </div>
+    <div id="cr-list" style="margin-top:14px"></div>`;
+  $('#cr-save').onclick = saveReading; $('#cr-cancel').onclick = resetReadingForm;
+  renderReadingList();
+}
+function renderReadingList() {
+  $('#cr-list').innerHTML = CREADINGS.length ? CREADINGS.map(r => `<div class="u-admin-row"><span><b>${esc(r.title)}</b> <span class="muted">· ${esc(r.level)} · #${r.position}</span></span><span class="nowrap"><button class="r-del" data-redit="${r.id}">Edit</button><button class="r-del" data-rdel="${r.id}">Del</button></span></div>`).join('') : '<div class="muted">No readings yet.</div>';
+  document.querySelectorAll('[data-redit]').forEach(b => b.onclick = () => editReadingC(+b.dataset.redit));
+  document.querySelectorAll('[data-rdel]').forEach(b => b.onclick = async () => { if (!confirm('Delete this reading?')) return; await fetch('/api/readings/' + b.dataset.rdel, { method: 'DELETE' }); await loadContent(true); });
+}
+async function editReadingC(id) {
+  const r = await (await fetch('/api/readings/' + id)).json();
+  rEditId = id; $('#cr-title').textContent = 'Edit reading';
+  $('#cr-title-in').value = r.title || ''; $('#cr-level').value = r.level || 'B1'; $('#cr-pos').value = r.position || 0;
+  $('#cr-body').value = r.body || ''; $('#cr-audio').value = r.audio_url || ''; $('#cr-file').value = '';
+  $('#cr-save').textContent = 'Save changes'; $('#cr-cancel').style.display = '';
+  $('#cr-title-in').scrollIntoView({ behavior: 'smooth', block: 'center' });
+}
+function resetReadingForm() { rEditId = null; if ($('#cr-title-in')) { ['cr-title-in', 'cr-body', 'cr-audio', 'cr-file'].forEach(i => $('#' + i).value = ''); $('#cr-pos').value = 0; $('#cr-title').textContent = 'Add reading'; $('#cr-save').textContent = 'Save reading'; $('#cr-cancel').style.display = 'none'; } }
+async function saveReading() {
+  const title = $('#cr-title-in').value.trim(), body = $('#cr-body').value.trim();
+  if (!title || !body) { cstatus('cr-status', 'Title and story are required.', false); return; }
+  const payload = { title, body, level: $('#cr-level').value, position: parseInt($('#cr-pos').value, 10) || 0, audio_url: $('#cr-audio').value.trim() };
+  if (rEditId) payload.id = rEditId;
+  const res = await (await fetch('/api/readings', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) })).json();
+  const f = $('#cr-file').files[0];
+  if (f && res.id) { const fd = new FormData(); fd.append('file', f); await fetch('/api/readings/' + res.id + '/audio', { method: 'POST', body: fd }); }
+  resetReadingForm(); await loadContent(true); cstatus('cr-status', `✓ Saved "${title}"`, true);
 }
 
 function keyField(id, info) {
@@ -244,6 +493,15 @@ function renderSettings() {
         <div class="set-row"><label>Model</label><input id="set-gemini-model" value="${esc(s.gemini_model)}" placeholder="gemini-2.5-flash or gemini-2.5-flash-lite"></div>
         ${keyField('set-gemini-key', s.gemini_key)}
       </div>
+      <div class="set-group"><div class="set-title">Ollama (Local)</div>
+        <div class="set-row"><label>API Endpoint</label><input id="set-ollama-url" value="${esc(s.ollama_base_url)}" placeholder="http://localhost:11434"></div>
+        <div class="set-row"><label>Model</label><input id="set-ollama-model" value="${esc(s.ollama_model)}" placeholder="llama3, mistral, phi3, gemma2…"></div>
+        <div class="set-row muted" style="font-size:.78rem">No API key needed — Ollama runs locally. Make sure <code>ollama serve</code> is running and the model is pulled.</div>
+      </div>
+      <div class="set-group"><div class="set-title">Referrals</div>
+        <div class="set-row"><label>Tokens awarded per invited friend</label>
+          <input id="set-referral-tokens" type="number" min="0" value="${s.referral_tokens ?? 50}"></div>
+      </div>
 
       <button id="set-save">Save settings</button>
       <span id="set-status" class="muted"></span>
@@ -257,6 +515,9 @@ async function saveSettings() {
     gemini_model: $('#set-gemini-model').value,
     anthropic_api_key: $('#set-anthropic-key').value,
     gemini_api_key: $('#set-gemini-key').value,
+    ollama_base_url: $('#set-ollama-url').value.trim(),
+    ollama_model: $('#set-ollama-model').value.trim(),
+    referral_tokens: parseInt($('#set-referral-tokens').value, 10),
   };
   $('#set-status').textContent = 'Saving…';
   const r = await fetch('/api/admin/settings', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });

@@ -1,5 +1,7 @@
 flashcards.db
+*.db
 .env
 __pycache__/
 .venv/
 *.pyc
+./todo

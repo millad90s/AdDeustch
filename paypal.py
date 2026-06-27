@@ -12,24 +12,27 @@ charged amount is never trusted from the browser.
 import os
 import httpx
 
-_CLIENT_ID = os.getenv("PAYPAL_CLIENT_ID", "")
-_SECRET = os.getenv("PAYPAL_SECRET", "")
-_ENV = os.getenv("PAYPAL_ENV", "sandbox").lower()
-_BASE = "https://api-m.paypal.com" if _ENV == "live" else "https://api-m.sandbox.paypal.com"
+def _client_id():
+    return os.getenv("PAYPAL_CLIENT_ID", "")
 
+def _secret():
+    return os.getenv("PAYPAL_SECRET", "")
+
+def _base():
+    env = os.getenv("PAYPAL_ENV", "sandbox").lower()
+    return "https://api-m.paypal.com" if env == "live" else "https://api-m.sandbox.paypal.com"
 
 def enabled():
-    return bool(_CLIENT_ID and _SECRET)
-
+    return bool(_client_id() and _secret())
 
 def client_id():
-    return _CLIENT_ID
+    return _client_id()
 
 
 def _token():
     r = httpx.post(
-        _BASE + "/v1/oauth2/token",
-        auth=(_CLIENT_ID, _SECRET),
+        _base() + "/v1/oauth2/token",
+        auth=(_client_id(), _secret()),
         data={"grant_type": "client_credentials"},
         timeout=20,
     )
@@ -41,7 +44,7 @@ def create_order(amount_str, currency, reference):
     """Create a PayPal order for amount_str (e.g. '2.99'). Returns the order id."""
     tok = _token()
     r = httpx.post(
-        _BASE + "/v2/checkout/orders",
+        _base() + "/v2/checkout/orders",
         headers={"Authorization": f"Bearer {tok}", "Content-Type": "application/json"},
         json={
             "intent": "CAPTURE",
@@ -62,7 +65,7 @@ def capture_order(order_id):
     only when PayPal reports the capture COMPLETED."""
     tok = _token()
     r = httpx.post(
-        _BASE + f"/v2/checkout/orders/{order_id}/capture",
+        _base() + f"/v2/checkout/orders/{order_id}/capture",
         headers={"Authorization": f"Bearer {tok}", "Content-Type": "application/json"},
         timeout=20,
     )
