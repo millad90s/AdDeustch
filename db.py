@@ -88,6 +88,13 @@ SCHEMA = """
         created_at  TEXT NOT NULL DEFAULT (datetime('now'))
     );
     CREATE INDEX IF NOT EXISTS idx_sentences_word ON sentences(word_id);
+    CREATE TABLE IF NOT EXISTS sentence_tags (
+        id          INTEGER PRIMARY KEY AUTOINCREMENT,
+        sentence_id INTEGER NOT NULL REFERENCES sentences(id) ON DELETE CASCADE,
+        tag         TEXT NOT NULL,
+        UNIQUE(sentence_id, tag)
+    );
+    CREATE INDEX IF NOT EXISTS idx_sentence_tags_tag ON sentence_tags(tag);
     CREATE TABLE IF NOT EXISTS notes (
         user_id     INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
         word_id     INTEGER NOT NULL REFERENCES words(id) ON DELETE CASCADE,
@@ -208,6 +215,44 @@ SCHEMA = """
         provider_ref    TEXT,
         created_at      TEXT NOT NULL DEFAULT (datetime('now'))
     );
+    CREATE TABLE IF NOT EXISTS companies (
+        id            INTEGER PRIMARY KEY AUTOINCREMENT,
+        name          TEXT NOT NULL,
+        email         TEXT NOT NULL UNIQUE,
+        password_hash TEXT NOT NULL,
+        contact_name  TEXT,
+        contact_phone TEXT,
+        approved      INTEGER NOT NULL DEFAULT 0,
+        created_at    TEXT NOT NULL DEFAULT (datetime('now'))
+    );
+    CREATE TABLE IF NOT EXISTS advertisements (
+        id            INTEGER PRIMARY KEY AUTOINCREMENT,
+        company_id    INTEGER NOT NULL REFERENCES companies(id) ON DELETE CASCADE,
+        title         TEXT NOT NULL,
+        description   TEXT NOT NULL,
+        image_url     TEXT,
+        image_type    TEXT,
+        approved      INTEGER NOT NULL DEFAULT 0,
+        active        INTEGER NOT NULL DEFAULT 1,
+        created_at    TEXT NOT NULL DEFAULT (datetime('now')),
+        updated_at    TEXT NOT NULL DEFAULT (datetime('now'))
+    );
+    CREATE TABLE IF NOT EXISTS ad_tags (
+        id            INTEGER PRIMARY KEY AUTOINCREMENT,
+        ad_id         INTEGER NOT NULL REFERENCES advertisements(id) ON DELETE CASCADE,
+        tag           TEXT NOT NULL,
+        UNIQUE(ad_id, tag)
+    );
+    CREATE INDEX IF NOT EXISTS idx_ad_tags_tag ON ad_tags(tag);
+    CREATE TABLE IF NOT EXISTS api_tokens (
+        id            INTEGER PRIMARY KEY AUTOINCREMENT,
+        user_id       INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+        token         TEXT NOT NULL UNIQUE,
+        name          TEXT,
+        last_used_at  TEXT,
+        created_at    TEXT NOT NULL DEFAULT (datetime('now'))
+    );
+    CREATE INDEX IF NOT EXISTS idx_api_tokens_token ON api_tokens(token);
 """
 
 
@@ -285,6 +330,9 @@ def _migrate(conn):
         conn.execute("ALTER TABLE units ADD COLUMN quiz_score INTEGER NOT NULL DEFAULT 6")
     if ucols and "call_ready" not in ucols:
         conn.execute("ALTER TABLE users ADD COLUMN call_ready INTEGER NOT NULL DEFAULT 0")
+    pcols = [r["name"] for r in conn.execute("PRAGMA table_info(profiles)").fetchall()]
+    if pcols and "location" not in pcols:
+        conn.execute("ALTER TABLE profiles ADD COLUMN location TEXT")
     conn.execute("""CREATE TABLE IF NOT EXISTS call_logs (
         id          INTEGER PRIMARY KEY AUTOINCREMENT,
         caller_id   INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
@@ -678,6 +726,26 @@ def set_tags(word_id, tags: list[str]):
                 )
 
 
+def set_sentence_tags(sentence_id, tags: list[str]):
+    """Replace all tags for a sentence."""
+    with connect() as conn:
+        conn.execute("DELETE FROM sentence_tags WHERE sentence_id = ?", (sentence_id,))
+        for t in tags:
+            t = t.strip().lower()
+            if t:
+                conn.execute(
+                    "INSERT OR IGNORE INTO sentence_tags (sentence_id, tag) VALUES (?, ?)",
+                    (sentence_id, t),
+                )
+
+
+def get_sentence_tags(sentence_id):
+    """Get all tags for a sentence."""
+    with connect() as conn:
+        rows = conn.execute("SELECT tag FROM sentence_tags WHERE sentence_id = ? ORDER BY tag", (sentence_id,)).fetchall()
+        return [r["tag"] for r in rows]
+
+
 def delete_word(word_id):
     with connect() as conn:
         cur = conn.execute("DELETE FROM words WHERE id = ?", (word_id,))
@@ -741,6 +809,8 @@ def list_words(career=None, user_id=None):
         d["sentences"] = by_word.get(w["id"], [])
         d["meanings"] = meanings_by_word.get(w["id"], [])
         d["tags"] = tags_by_word.get(w["id"], [])
+        # Include approved, active ads that match this word's tags
+        d["ads"] = get_ads_for_word(w["id"])
         if career is not None:
             d["has_career_sentences"] = has_career.get(w["id"], False)
             if user_id is not None:
@@ -770,6 +840,34 @@ def add_career_sentences(word_id, career, pairs):
             if sid:
                 inserted.append({"id": sid, "sentence_de": de.strip(),
                                  "sentence_en": en.strip(), "career": career})
+    return inserted
+
+
+def add_career_sentences_with_tags(word_id, career, sentences_with_tags):
+    """Store sentences with their tags. Expects list of dicts:
+    [{"de": "...", "en": "...", "tags": [...]}, ...]
+    Returns list of inserted sentence dicts."""
+    inserted = []
+    with connect() as conn:
+        if not conn.execute("SELECT 1 FROM words WHERE id = ?", (word_id,)).fetchone():
+            return []
+        for item in sentences_with_tags:
+            de = item.get("de")
+            en = item.get("en")
+            tags = item.get("tags", [])
+            if de and en:
+                sid = _insert_sentence_if_new(conn, word_id, de, en, career=career)
+                if sid:
+                    # Store tags for this sentence
+                    for tag in tags:
+                        tag = tag.strip().lower()
+                        if tag:
+                            conn.execute(
+                                "INSERT OR IGNORE INTO sentence_tags (sentence_id, tag) VALUES (?, ?)",
+                                (sid, tag),
+                            )
+                    inserted.append({"id": sid, "sentence_de": de.strip(),
+                                     "sentence_en": en.strip(), "career": career, "tags": tags})
     return inserted
 
 
@@ -833,20 +931,20 @@ def upsert_progress(user_id, word_id, reps, interval, ease, lapses, due):
 def get_profile(user_id):
     with connect() as conn:
         row = conn.execute(
-            "SELECT career, level, daily_goal FROM profiles WHERE user_id = ?", (user_id,)
+            "SELECT career, level, location, daily_goal FROM profiles WHERE user_id = ?", (user_id,)
         ).fetchone()
         return dict(row) if row else None
 
 
-def save_profile(user_id, career, level, daily_goal):
+def save_profile(user_id, career, level, daily_goal, location=None):
     with connect() as conn:
         conn.execute(
-            """INSERT INTO profiles (user_id, career, level, daily_goal, updated_at)
-               VALUES (?, ?, ?, ?, datetime('now'))
+            """INSERT INTO profiles (user_id, career, level, location, daily_goal, updated_at)
+               VALUES (?, ?, ?, ?, ?, datetime('now'))
                ON CONFLICT(user_id) DO UPDATE SET
-                   career=excluded.career, level=excluded.level,
+                   career=excluded.career, level=excluded.level, location=excluded.location,
                    daily_goal=excluded.daily_goal, updated_at=datetime('now')""",
-            (user_id, career, level, int(daily_goal)),
+            (user_id, career, level, location, int(daily_goal)),
         )
         return True
 
@@ -1535,3 +1633,286 @@ def admin_dashboard(recent=40):
             "packages": packages, "recent_purchases": recent_purchases,
             "access_logs": access_logs,
             "recent_logs": recent_logs, "error_logs": error_logs}
+
+
+# --------------------------------------------------------------------------
+# companies & advertisements
+# --------------------------------------------------------------------------
+def create_company(email, password, name, contact_name=None, contact_phone=None):
+    """Create a company account. Raises ValueError if email is taken.
+    Returns the new company row."""
+    email = email.strip().lower()
+    if get_company_by_email(email):
+        raise ValueError("email already registered")
+    with connect() as conn:
+        try:
+            cur = conn.execute(
+                "INSERT INTO companies (email, password_hash, name, contact_name, contact_phone, approved) VALUES (?, ?, ?, ?, ?, ?)",
+                (email, hash_password(password), name, contact_name, contact_phone, 0),
+            )
+        except sqlite3.IntegrityError:
+            raise ValueError("email already registered")
+        row = conn.execute("SELECT * FROM companies WHERE id = ?", (cur.lastrowid,)).fetchone()
+        return dict(row)
+
+
+def get_company(company_id):
+    """Get company by ID."""
+    with connect() as conn:
+        row = conn.execute("SELECT * FROM companies WHERE id = ?", (company_id,)).fetchone()
+        return dict(row) if row else None
+
+
+def get_company_by_email(email):
+    """Get company by email."""
+    with connect() as conn:
+        row = conn.execute("SELECT * FROM companies WHERE LOWER(email) = ?", (email.strip().lower(),)).fetchone()
+        return dict(row) if row else None
+
+
+def authenticate_company(email, password):
+    """Return the company row if email+password match, else None."""
+    company = get_company_by_email(email)
+    if company and company.get("password_hash") and verify_password(password, company["password_hash"]):
+        return company
+    return None
+
+
+def list_companies(approved=None):
+    """List companies. If approved is not None, filter by approval status."""
+    with connect() as conn:
+        if approved is None:
+            rows = conn.execute("SELECT * FROM companies ORDER BY created_at DESC").fetchall()
+        else:
+            rows = conn.execute("SELECT * FROM companies WHERE approved = ? ORDER BY created_at DESC", (1 if approved else 0,)).fetchall()
+        return [dict(r) for r in rows]
+
+
+def approve_company(company_id, approved=True):
+    """Set company approval status."""
+    with connect() as conn:
+        conn.execute("UPDATE companies SET approved = ? WHERE id = ?", (1 if approved else 0, company_id))
+
+
+def create_advertisement(company_id, title, description, tags, image_url=None, image_type=None):
+    """Create an ad for a company. Tags is a list of strings.
+    Returns the new advertisement row."""
+    with connect() as conn:
+        cur = conn.execute(
+            "INSERT INTO advertisements (company_id, title, description, image_url, image_type) VALUES (?, ?, ?, ?, ?)",
+            (company_id, title, description, image_url, image_type),
+        )
+        ad_id = cur.lastrowid
+        for tag in tags:
+            conn.execute("INSERT OR IGNORE INTO ad_tags (ad_id, tag) VALUES (?, ?)", (ad_id, tag.lower()))
+        row = conn.execute("SELECT * FROM advertisements WHERE id = ?", (ad_id,)).fetchone()
+        return dict(row)
+
+
+def get_advertisement(ad_id):
+    """Get ad by ID with tags."""
+    with connect() as conn:
+        ad = conn.execute("SELECT * FROM advertisements WHERE id = ?", (ad_id,)).fetchone()
+        if not ad:
+            return None
+        ad = dict(ad)
+        tags = conn.execute("SELECT tag FROM ad_tags WHERE ad_id = ? ORDER BY tag", (ad_id,)).fetchall()
+        ad["tags"] = [t["tag"] for t in tags]
+        return ad
+
+
+def list_company_ads(company_id, approved=None):
+    """List ads for a company. If approved is not None, filter by approval status."""
+    with connect() as conn:
+        if approved is None:
+            rows = conn.execute("SELECT * FROM advertisements WHERE company_id = ? ORDER BY created_at DESC", (company_id,)).fetchall()
+        else:
+            rows = conn.execute("SELECT * FROM advertisements WHERE company_id = ? AND approved = ? ORDER BY created_at DESC", (company_id, 1 if approved else 0)).fetchall()
+        ads = []
+        for row in rows:
+            ad = dict(row)
+            tags = conn.execute("SELECT tag FROM ad_tags WHERE ad_id = ? ORDER BY tag", (ad["id"],)).fetchall()
+            ad["tags"] = [t["tag"] for t in tags]
+            ads.append(ad)
+        return ads
+
+
+def list_pending_advertisements(approved=False):
+    """List all pending ads (not approved) or approved ads, for admin dashboard."""
+    with connect() as conn:
+        rows = conn.execute(
+            "SELECT a.*, c.name as company_name FROM advertisements a JOIN companies c ON c.id = a.company_id WHERE a.approved = ? ORDER BY a.created_at DESC",
+            (1 if approved else 0,)
+        ).fetchall()
+        ads = []
+        for row in rows:
+            ad = dict(row)
+            tags = conn.execute("SELECT tag FROM ad_tags WHERE ad_id = ? ORDER BY tag", (ad["id"],)).fetchall()
+            ad["tags"] = [t["tag"] for t in tags]
+            ads.append(ad)
+        return ads
+
+
+def approve_advertisement(ad_id, approved=True):
+    """Set ad approval status."""
+    with connect() as conn:
+        conn.execute("UPDATE advertisements SET approved = ? WHERE id = ?", (1 if approved else 0, ad_id))
+
+
+def update_advertisement(ad_id, title=None, description=None, tags=None, image_url=None, image_type=None, active=None):
+    """Update ad metadata."""
+    with connect() as conn:
+        updates = []
+        params = []
+        if title is not None:
+            updates.append("title = ?")
+            params.append(title)
+        if description is not None:
+            updates.append("description = ?")
+            params.append(description)
+        if image_url is not None:
+            updates.append("image_url = ?")
+            params.append(image_url)
+        if image_type is not None:
+            updates.append("image_type = ?")
+            params.append(image_type)
+        if active is not None:
+            updates.append("active = ?")
+            params.append(1 if active else 0)
+        if updates:
+            updates.append("updated_at = datetime('now')")
+            params.append(ad_id)
+            conn.execute(f"UPDATE advertisements SET {', '.join(updates)} WHERE id = ?", params)
+        if tags is not None:
+            conn.execute("DELETE FROM ad_tags WHERE ad_id = ?", (ad_id,))
+            for tag in tags:
+                conn.execute("INSERT OR IGNORE INTO ad_tags (ad_id, tag) VALUES (?, ?)", (ad_id, tag.lower()))
+
+
+def delete_advertisement(ad_id):
+    """Delete an ad."""
+    with connect() as conn:
+        conn.execute("DELETE FROM advertisements WHERE id = ?", (ad_id,))
+
+
+def get_ads_for_word(word_id):
+    """Get all approved, active ads that match the word's tags OR sentence tags."""
+    with connect() as conn:
+        # Get word-level tags
+        word_tags = conn.execute("SELECT tag FROM word_tags WHERE word_id = ?", (word_id,)).fetchall()
+        word_tag_list = [t["tag"].lower() for t in word_tags]
+
+        # Get tags from all sentences for this word
+        sentence_tags = conn.execute(
+            """SELECT DISTINCT st.tag FROM sentence_tags st
+               JOIN sentences s ON st.sentence_id = s.id
+               WHERE s.word_id = ?""",
+            (word_id,)
+        ).fetchall()
+        sentence_tag_list = [t["tag"].lower() for t in sentence_tags]
+
+        # Combine all tags
+        all_tags = list(set(word_tag_list + sentence_tag_list))
+
+        if not all_tags:
+            return []
+
+        placeholders = ",".join("?" * len(all_tags))
+        rows = conn.execute(
+            f"""SELECT DISTINCT a.* FROM advertisements a
+               WHERE a.approved = 1 AND a.active = 1
+               AND a.id IN (SELECT DISTINCT ad_id FROM ad_tags WHERE tag IN ({placeholders}))
+               ORDER BY a.created_at DESC""",
+            all_tags
+        ).fetchall()
+        ads = []
+        for row in rows:
+            ad = dict(row)
+            tags = conn.execute("SELECT tag FROM ad_tags WHERE ad_id = ?", (ad["id"],)).fetchall()
+            ad["tags"] = [t["tag"] for t in tags]
+            ads.append(ad)
+        return ads
+
+
+def get_words_for_ad(ad_id):
+    """Get all words whose tags match this ad's tags."""
+    with connect() as conn:
+        # Get ad tags
+        ad_tags = conn.execute("SELECT tag FROM ad_tags WHERE ad_id = ?", (ad_id,)).fetchall()
+        ad_tag_list = [t["tag"].lower() for t in ad_tags]
+
+        if not ad_tag_list:
+            return []
+
+        # Find all words that have matching tags
+        placeholders = ",".join("?" * len(ad_tag_list))
+        rows = conn.execute(
+            f"""SELECT DISTINCT w.id, w.word FROM words w
+               WHERE w.id IN (
+                   SELECT DISTINCT word_id FROM word_tags WHERE tag IN ({placeholders})
+               )
+               ORDER BY w.word""",
+            ad_tag_list
+        ).fetchall()
+
+        return [dict(r) for r in rows]
+
+
+def count_words_for_ad(ad_id):
+    """Count how many words match this ad's tags."""
+    return len(get_words_for_ad(ad_id))
+
+
+def get_all_tags():
+    """Get all unique tags from word_tags table."""
+    with connect() as conn:
+        rows = conn.execute("SELECT DISTINCT tag FROM word_tags ORDER BY tag").fetchall()
+        return [r["tag"] for r in rows]
+
+
+# --------------------------------------------------------------------------
+# API tokens
+# --------------------------------------------------------------------------
+def create_api_token(user_id, name=None):
+    """Generate a new API token for a user."""
+    import secrets
+    token = secrets.token_urlsafe(32)
+    with connect() as conn:
+        conn.execute(
+            "INSERT INTO api_tokens (user_id, token, name) VALUES (?, ?, ?)",
+            (user_id, token, name)
+        )
+    return token
+
+
+def get_user_by_token(token):
+    """Validate token and return user if valid."""
+    with connect() as conn:
+        row = conn.execute(
+            "SELECT u.* FROM users u JOIN api_tokens t ON u.id = t.user_id WHERE t.token = ?",
+            (token,)
+        ).fetchone()
+        if row:
+            # Update last_used_at
+            conn.execute("UPDATE api_tokens SET last_used_at = datetime('now') WHERE token = ?", (token,))
+            return dict(row)
+        return None
+
+
+def list_api_tokens(user_id):
+    """List all API tokens for a user."""
+    with connect() as conn:
+        rows = conn.execute(
+            "SELECT id, name, created_at, last_used_at FROM api_tokens WHERE user_id = ? ORDER BY created_at DESC",
+            (user_id,)
+        ).fetchall()
+        return [dict(r) for r in rows]
+
+
+def revoke_api_token(user_id, token_id):
+    """Revoke an API token."""
+    with connect() as conn:
+        conn.execute(
+            "DELETE FROM api_tokens WHERE id = ? AND user_id = ?",
+            (token_id, user_id)
+        )

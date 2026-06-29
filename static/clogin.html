@@ -1,0 +1,225 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Company Login - German Flashcards</title>
+<link rel="icon" type="image/svg+xml" href="/favicon.svg">
+<style>
+  :root {
+    --bg: #0f172a; --panel: #1e293b; --panel-2: #334155;
+    --text: #e2e8f0; --muted: #94a3b8; --accent: #38bdf8;
+    --good: #22c55e; --easy: #14b8a6; --hard: #f59e0b; --again: #ef4444;
+    --border: #334155;
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; font-family: system-ui, -apple-system, Segoe UI, Roboto, sans-serif;
+    background: var(--bg); color: var(--text); min-height: 100vh; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 16px; }
+
+  .container { width: 100%; max-width: 400px; }
+  h1 { text-align: center; margin: 0 0 30px; font-size: 1.5rem; }
+
+  .modal-card { background: var(--panel); border: 1px solid var(--border); border-radius: 14px; padding: 28px; }
+  .modal-card h2 { margin: 0 0 6px; font-size: 1.2rem; }
+  .modal-card .sub { color: var(--muted); font-size: .85rem; margin-bottom: 16px; }
+
+  .modal-card label { display: block; font-size: .8rem; color: var(--muted); margin: 14px 0 4px; }
+  .modal-card input { width: 100%; background: var(--bg); color: var(--text); border: 1px solid var(--border); border-radius: 8px; padding: 11px; font-size: .95rem; font-family: inherit; }
+
+  .modal-card .err { color: var(--again); font-size: .8rem; min-height: 18px; margin-top: 10px; }
+  .modal-card .submit { width: 100%; margin-top: 18px; background: var(--accent); color: #06121f; border: none; border-radius: 10px; padding: 12px; font-weight: 700; cursor: pointer; font-size: .95rem; }
+  .modal-card .submit:disabled { opacity: .6; cursor: default; }
+
+  .modal-card .switch { text-align: center; font-size: .85rem; color: var(--muted); margin-top: 14px; }
+  .modal-card .switch a { color: var(--accent); cursor: pointer; }
+
+  .back-link { text-align: center; margin-top: 16px; }
+  .back-link a { color: var(--accent); text-decoration: none; font-size: .9rem; }
+  .back-link a:hover { text-decoration: underline; }
+
+  .view { display: none; }
+  .view.active { display: block; }
+</style>
+</head>
+<body>
+
+<div class="container">
+  <h1>🎯 Company Hub</h1>
+
+  <!-- Login View -->
+  <div id="login-view" class="view active">
+    <div class="modal-card">
+      <h2>Company Login</h2>
+      <div class="sub">Sign in to manage your advertisements</div>
+
+      <label>Email</label>
+      <input id="login-email" type="email" placeholder="company@example.com" autocomplete="email">
+
+      <label>Password</label>
+      <input id="login-password" type="password" placeholder="••••••••" autocomplete="current-password">
+
+      <div class="err" id="login-error"></div>
+      <button class="submit" id="login-btn" onclick="handleLogin()">Sign In</button>
+
+      <div class="switch">
+        Don't have an account? <a onclick="showSignup()">Create one</a>
+      </div>
+    </div>
+  </div>
+
+  <!-- Signup View -->
+  <div id="signup-view" class="view">
+    <div class="modal-card">
+      <h2>Create Company Account</h2>
+      <div class="sub">Join us to promote your products</div>
+
+      <label>Company Name</label>
+      <input id="signup-name" type="text" placeholder="Your Company Name" autocomplete="organization">
+
+      <label>Email</label>
+      <input id="signup-email" type="email" placeholder="company@example.com" autocomplete="email">
+
+      <label>Password (min. 8 characters)</label>
+      <input id="signup-password" type="password" placeholder="••••••••" autocomplete="new-password">
+
+      <label>Contact Name (optional)</label>
+      <input id="signup-contact-name" type="text" placeholder="Your Name">
+
+      <label>Contact Phone (optional)</label>
+      <input id="signup-contact-phone" type="tel" placeholder="+1 (555) 000-0000">
+
+      <div class="err" id="signup-error"></div>
+      <button class="submit" id="signup-btn" onclick="handleSignup()">Create Account</button>
+
+      <div class="switch">
+        Already have an account? <a onclick="showLogin()">Sign in</a>
+      </div>
+    </div>
+  </div>
+
+  <div class="back-link">
+    <a href="/">← Back to Learning</a>
+  </div>
+</div>
+
+<script>
+  const API_BASE = '';
+
+  function showLogin() {
+    document.getElementById('login-view').classList.add('active');
+    document.getElementById('signup-view').classList.remove('active');
+    clearErrors();
+  }
+
+  function showSignup() {
+    document.getElementById('signup-view').classList.add('active');
+    document.getElementById('login-view').classList.remove('active');
+    clearErrors();
+  }
+
+  function clearErrors() {
+    document.getElementById('login-error').textContent = '';
+    document.getElementById('signup-error').textContent = '';
+  }
+
+  async function handleLogin() {
+    const email = document.getElementById('login-email').value.trim();
+    const password = document.getElementById('login-password').value;
+    const btn = document.getElementById('login-btn');
+    const errEl = document.getElementById('login-error');
+
+    errEl.textContent = '';
+
+    if (!email || !password) {
+      errEl.textContent = 'Please fill in all fields';
+      return;
+    }
+
+    btn.disabled = true;
+    try {
+      const res = await fetch(`${API_BASE}/auth/company/login`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email, password }),
+      });
+
+      if (res.ok) {
+        const data = await res.json();
+        if (data.company.approved) {
+          window.location.href = '/cdashboard';
+        } else {
+          errEl.textContent = 'Your account is pending admin approval. Please wait.';
+        }
+      } else {
+        const err = await res.json();
+        errEl.textContent = err.detail || 'Login failed';
+      }
+    } catch (e) {
+      errEl.textContent = 'Network error: ' + e.message;
+    } finally {
+      btn.disabled = false;
+    }
+  }
+
+  async function handleSignup() {
+    const name = document.getElementById('signup-name').value.trim();
+    const email = document.getElementById('signup-email').value.trim();
+    const password = document.getElementById('signup-password').value;
+    const contactName = document.getElementById('signup-contact-name').value.trim() || null;
+    const contactPhone = document.getElementById('signup-contact-phone').value.trim() || null;
+    const btn = document.getElementById('signup-btn');
+    const errEl = document.getElementById('signup-error');
+
+    errEl.textContent = '';
+
+    if (!name || !email || !password) {
+      errEl.textContent = 'Please fill in required fields';
+      return;
+    }
+
+    if (password.length < 8) {
+      errEl.textContent = 'Password must be at least 8 characters';
+      return;
+    }
+
+    btn.disabled = true;
+    try {
+      const res = await fetch(`${API_BASE}/auth/company/signup`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name, email, password, contact_name: contactName, contact_phone: contactPhone }),
+      });
+
+      if (res.ok) {
+        errEl.textContent = '';
+        errEl.parentElement.parentElement.insertBefore(
+          Object.assign(document.createElement('div'), {
+            className: 'err',
+            style: 'color: var(--good)',
+            textContent: '✓ Account created! Awaiting admin approval. You can sign in once approved.'
+          }),
+          errEl.parentElement
+        );
+        setTimeout(() => showLogin(), 2000);
+      } else {
+        const err = await res.json();
+        errEl.textContent = err.detail || 'Signup failed';
+      }
+    } catch (e) {
+      errEl.textContent = 'Network error: ' + e.message;
+    } finally {
+      btn.disabled = false;
+    }
+  }
+
+  // Allow Enter to submit
+  document.getElementById('login-password').addEventListener('keypress', (e) => {
+    if (e.key === 'Enter') handleLogin();
+  });
+  document.getElementById('signup-contact-phone').addEventListener('keypress', (e) => {
+    if (e.key === 'Enter') handleSignup();
+  });
+</script>
+
+</body>
+</html>

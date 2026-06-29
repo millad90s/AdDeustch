@@ -93,7 +93,15 @@
   .w-meaning-chip { font-size: .78rem; background: var(--bg); border: 1px solid var(--border); border-radius: 20px; padding: 3px 10px; color: var(--text); }
   .tip-btn { background: none; border: none; cursor: pointer; font-size: 1.1rem; padding: 0 2px; vertical-align: middle; opacity: .55; transition: opacity .15s; line-height: 1; }
   .tip-btn:hover { opacity: 1; }
+  .ad-btn { background: none; border: none; cursor: pointer; font-size: 1.1rem; padding: 0 2px; vertical-align: middle; opacity: .55; transition: opacity .15s; line-height: 1; }
+  .ad-btn:hover { opacity: 1; }
+  .ad-btn.hidden { display: none; }
   .tip-popup { position: fixed; z-index: 100; background: var(--panel); border: 1px solid var(--border); border-radius: 10px; padding: 12px 16px 10px; font-size: .85rem; color: var(--text); line-height: 1.6; box-shadow: 0 4px 20px rgba(0,0,0,.22); width: min(280px, 90vw); max-height: 60vh; overflow-y: auto; word-break: break-word; white-space: normal; }
+  .ad-popup { position: fixed; z-index: 100; background: var(--panel); border: 1px solid var(--border); border-radius: 10px; padding: 16px; font-size: .85rem; color: var(--text); box-shadow: 0 4px 20px rgba(0,0,0,.22); width: min(320px, 90vw); max-height: 70vh; overflow-y: auto; word-break: break-word; white-space: normal; }
+  .ad-popup-close { position: absolute; top: 8px; right: 8px; background: none; border: none; cursor: pointer; font-size: .9rem; color: var(--muted); }
+  .ad-popup img { width: 100%; border-radius: 8px; margin-bottom: 12px; }
+  .ad-popup h3 { margin: 0 0 8px; font-size: .95rem; }
+  .ad-popup p { margin: 0; font-size: .8rem; color: var(--muted); line-height: 1.5; }
   .tip-popup-close { position: absolute; top: 5px; right: 8px; background: none; border: none; cursor: pointer; font-size: .85rem; color: var(--muted); }
   .w-link { display: inline-block; margin-top: 6px; font-size: .76rem; color: var(--muted); text-decoration: none; }
   .w-link:hover { color: var(--accent); text-decoration: underline; }
@@ -113,13 +121,11 @@
   .q-english { font-size: 1.25rem; font-weight: 600; font-style: italic; color: var(--text); margin-bottom: 16px; line-height: 1.4; }
   #opts { display: flex; flex-direction: column; gap: 12px; }
   .opt { -webkit-appearance: none; appearance: none; display: block; width: 100%; text-align: left;
-    background: var(--panel-2); color: var(--text); border: 1.5px solid var(--border);
-    border-left: 4px solid var(--border);
-    border-radius: 14px; padding: 18px 20px; cursor: pointer;
-    font-size: 1.05rem; font-family: inherit; line-height: 1.55;
-    box-shadow: 0 2px 8px rgba(0,0,0,.15);
-    transition: border-color .15s, border-left-color .15s, background .15s, box-shadow .15s; }
-  .opt:hover:not(:disabled) { border-color: var(--accent); border-left-color: var(--accent); background: var(--panel-2); box-shadow: 0 0 0 2px rgba(56,189,248,.2); }
+    background: var(--panel); color: var(--text); border: 1px solid var(--border);
+    border-radius: 10px; padding: 13px 16px; cursor: pointer;
+    font-size: .9rem; font-family: inherit; line-height: 1.5;
+    transition: border-color .15s, background .15s; }
+  .opt:hover:not(:disabled) { border-color: var(--accent); background: var(--panel-2); }
   .opt.correct { border-color: var(--good) !important; border-left-color: var(--good) !important; background: rgba(34,197,94,.1) !important; box-shadow: 0 0 0 2px rgba(34,197,94,.25) !important; color: var(--text); }
   .opt.wrong   { border-color: var(--again) !important; border-left-color: var(--again) !important; background: rgba(239,68,68,.1) !important; box-shadow: 0 0 0 2px rgba(239,68,68,.25) !important; color: var(--text); }
   .opt:disabled { cursor: default; }
@@ -683,7 +689,7 @@
 <!-- ONBOARDING / SETTINGS MODAL -->
 <div class="modal" id="onb-modal">
   <div class="modal-card">
-    <button class="close" id="onb-close" style="display:none">✕</button>
+    <button class="close" id="onb-close">✕</button>
     <h2 id="onb-title">Welcome! Let's personalize your learning</h2>
     <div class="sub">A few quick questions so we show the right words for you.</div>
     <label>Your role / career track</label>
@@ -692,7 +698,11 @@
     <div class="sub" style="margin-top:4px">Pick one or type your own.</div>
     <label>Your current German level</label>
     <select id="onb-level"></select>
+    <label>Location</label>
+    <input id="onb-location" class="fld" placeholder="e.g. Berlin, Germany" autocomplete="off">
+    <div class="sub" style="margin-top:4px">We'll provide location-specific examples.</div>
     <button class="submit" id="onb-save">Start learning</button>
+    <button class="ghost" id="onb-skip" style="display:none">Skip for now</button>
   </div>
 </div>
 
@@ -981,7 +991,8 @@ function openOnboarding(edit) {
   loadCareerSuggestions();   // refresh the list (in case new careers appeared)
   $('#onb-title').textContent = edit ? 'Your learning settings' : "Welcome! Let's personalize your learning";
   $('#onb-save').textContent = edit ? 'Save' : 'Start learning';
-  $('#onb-close').style.display = edit ? 'block' : 'none';
+  $('#onb-close').style.display = 'block';
+  $('#onb-skip').style.display = edit ? 'none' : 'block';
   if (PROFILE) {
     const label = careerLabel();
     const sel = $('#onb-career-select');
@@ -989,14 +1000,17 @@ function openOnboarding(edit) {
     if (match) { sel.value = label; $('#onb-career').style.display = 'none'; }
     else { sel.value = '__other__'; $('#onb-career').value = label; $('#onb-career').style.display = 'block'; }
     $('#onb-level').value = PROFILE.level;
-  } else { $('#onb-career-select').value = $('#onb-career-select').options[0]?.value || ''; $('#onb-career').style.display = 'none'; $('#onb-level').value = 'B1'; }
+    $('#onb-location').value = PROFILE.location || '';
+  } else { $('#onb-career-select').value = $('#onb-career-select').options[0]?.value || ''; $('#onb-career').style.display = 'none'; $('#onb-level').value = 'B1'; $('#onb-location').value = ''; }
   $('#onb-modal').style.display = 'flex';
 }
 $('#onb-close').onclick = () => { $('#onb-modal').style.display = 'none'; };
+$('#onb-skip').onclick = () => { $('#onb-modal').style.display = 'none'; startLesson(); };
 $('#onb-save').onclick = async () => {
   const career = getCareerValue() || 'General / All topics';
   const prevCareer = careerStr();
-  PROFILE = { career, level: $('#onb-level').value, daily_goal: 10 };
+  const location = $('#onb-location').value.trim();
+  PROFILE = { career, level: $('#onb-level').value, location: location || null, daily_goal: 10 };
   await saveProfile();
   $('#onb-modal').style.display = 'none';
   try {
@@ -1109,7 +1123,7 @@ function renderStudy() {
     <div style="font-size:.8rem;color:var(--muted);margin-bottom:8px">Study · word ${studyIdx + 1} of ${lesson.length}</div>
     <div class="card">
       <div class="sentence">${highlight(escapeHtml(studySentence.sentence_de), w.word)}</div>
-      ${studyRevealed ? `<div class="answer"><div class="word" style="position:relative;display:inline-block"><span id="speak-word" title="Click to hear the word" style="cursor:pointer">${escapeHtml(w.word)}${speechOK ? ' <span class="speak-ico">🔊</span>' : ''}</span>${(w.meanings||[]).length ? ` <button class="tip-btn" id="tip-btn" title="Show meanings">💡</button><div class="tip-popup" id="tip-popup" style="display:none"><button class="tip-popup-close" id="tip-close">✕</button><div>${(w.meanings).map((m,i)=>`<div><b>${i+1}.</b> ${escapeHtml(m)}</div>`).join('')}</div></div>` : ''}</div>${wordMeta(w)}<div class="trans">${escapeHtml(studySentence.sentence_en)}</div></div>`
+      ${studyRevealed ? `<div class="answer"><div class="word" style="position:relative;display:inline-block"><span id="speak-word" title="Click to hear the word" style="cursor:pointer">${escapeHtml(w.word)}${speechOK ? ' <span class="speak-ico">🔊</span>' : ''}</span>${(w.meanings||[]).length ? ` <button class="tip-btn" id="tip-btn" title="Show meanings">💡</button><div class="tip-popup" id="tip-popup" style="display:none"><button class="tip-popup-close" id="tip-close">✕</button><div>${(w.meanings).map((m,i)=>`<div><b>${i+1}.</b> ${escapeHtml(m)}</div>`).join('')}</div></div>` : ''}${(w.ads||[]).length ? ` <button class="ad-btn" id="ad-btn" title="View sponsored product">🎯</button><div class="ad-popup" id="ad-popup" style="display:none"><button class="ad-popup-close" id="ad-close">✕</button><div id="ad-content"></div></div>` : ''}</div>${wordMeta(w)}<div class="trans">${escapeHtml(studySentence.sentence_en)}</div></div>`
         : `<div class="hint">Tap to reveal the meaning</div>`}
     </div>
     <div class="row-actions">
@@ -1145,6 +1159,36 @@ function renderStudy() {
         $('#tip-popup').style.display = 'none';
       }
     });
+  }
+  if ($('#ad-btn')) {
+    const ad = (w.ads || [])[0];  // Show first matching ad
+    if (ad) {
+      $('#ad-btn').onclick = (e) => {
+        e.stopPropagation();
+        const p = $('#ad-popup');
+        if (p.style.display !== 'none') { p.style.display = 'none'; return; }
+        const content = $('#ad-content');
+        content.innerHTML = `
+          ${ad.image_url ? `<img src="${escapeHtml(ad.image_url)}" alt="${escapeHtml(ad.title)}">` : ''}
+          <h3>${escapeHtml(ad.title)}</h3>
+          <p>${escapeHtml(ad.description)}</p>
+        `;
+        p.style.display = 'block';
+        const r = e.currentTarget.getBoundingClientRect();
+        const pw = p.offsetWidth || 320;
+        let left = r.left + r.width / 2 - pw / 2;
+        left = Math.max(8, Math.min(left, window.innerWidth - pw - 8));
+        p.style.left = left + 'px';
+        p.style.top = (r.bottom + 8) + 'px';
+      };
+      $('#ad-close').onclick = (e) => { e.stopPropagation(); $('#ad-popup').style.display = 'none'; };
+      document.addEventListener('click', function closeAd(e) {
+        if (!$('#ad-popup')) { document.removeEventListener('click', closeAd); return; }
+        if (!$('#ad-btn').contains(e.target) && !$('#ad-popup').contains(e.target)) {
+          $('#ad-popup').style.display = 'none';
+        }
+      });
+    }
   }
   $('#learn-area').querySelectorAll('.word-link').forEach(el => el.addEventListener('click', (e) => e.stopPropagation()));
   $('#note-input').addEventListener('change', (e) => saveNote(w.id, e.target.value));
@@ -1407,6 +1451,12 @@ async function captureRef() {
   try { await jreq('/api/ref', 'POST', { code }); } catch {}   // stash for after signup (incl. Google)
   try { REF_INFO = await api('/api/ref/' + encodeURIComponent(code)); } catch {}  // who invited them
   history.replaceState(null, '', location.pathname);            // clean ?ref from the URL
+}
+async function captureAuthError() {
+  const errorMsg = new URLSearchParams(location.search).get('auth_error');
+  if (!errorMsg) return;
+  toast('❌ ' + decodeURIComponent(errorMsg));
+  history.replaceState(null, '', location.pathname);            // clean ?auth_error from the URL
 }
 async function openInvite() {
   const m = $('#invite-modal'); m.style.display = 'flex';
@@ -2135,6 +2185,7 @@ $('#gate-signup').onclick = () => openAuth('signup');
 // -------- init --------
 async function init() {
   await captureRef();   // stash any ?ref=CODE before the user signs up
+  await captureAuthError();  // show any auth errors (e.g., user cancelled Google login)
   ME = await api('/api/me');
   if (!ME.user) { showGate(); return; }   // app is for signed-in users only
   renderAuth();

@@ -1,21 +1,24 @@
 services:
   web:
-    build: .
-    image: german-flashcards
+    build: ""
+    image: ghcr.io/millad90s/addeustch:master
     container_name: flashcards
-    ports:
-      - "8000:8000"
     env_file:
-      - .env
+      - .env.prod
+    ports:
+      - "8080:8000"
+    command: ["uvicorn", "app:app", "--host", "0.0.0.0", "--port", "8000", "--proxy-headers", "--forwarded-allow-ips", "*"]
     environment:
+      BEHIND_PROXY: "true"
       DB_PATH: /data/flashcards.db
       MINIO_ENDPOINT: minio:9000
-      MINIO_PUBLIC_URL: https://minio.yourdomain.com
+      MINIO_USE_SSL: "false"
     volumes:
       - ./data:/data
     depends_on:
-      - minio
-    restart: unless-stopped
+      minio:
+        condition: service_healthy
+    restart: always
 
   minio:
     image: minio/minio:latest
@@ -23,13 +26,15 @@ services:
     ports:
       - "9000:9000"
       - "9001:9001"
+    env_file:
+      - .env.prod
     environment:
-      MINIO_ROOT_USER: ${MINIO_ACCESS_KEY:-minioadmin}
-      MINIO_ROOT_PASSWORD: ${MINIO_SECRET_KEY:-minioadmin}
+      MINIO_ROOT_USER: ${MINIO_ACCESS_KEY}
+      MINIO_ROOT_PASSWORD: ${MINIO_SECRET_KEY}
     volumes:
       - minio-data:/data
     command: server /data --console-address ":9001"
-    restart: unless-stopped
+    restart: always
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:9000/minio/health/live"]
       interval: 30s

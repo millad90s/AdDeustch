@@ -1,0 +1,528 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Company Dashboard - German Flashcards</title>
+<link rel="icon" type="image/svg+xml" href="/favicon.svg">
+<style>
+  :root {
+    --bg: #0f172a; --panel: #1e293b; --panel-2: #334155;
+    --text: #e2e8f0; --muted: #94a3b8; --accent: #38bdf8;
+    --good: #22c55e; --easy: #14b8a6; --hard: #f59e0b; --again: #ef4444;
+    --border: #334155;
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; font-family: system-ui, -apple-system, Segoe UI, Roboto, sans-serif;
+    background: var(--bg); color: var(--text); min-height: 100vh; display: flex; flex-direction: column; }
+
+  header { background: var(--panel); border-bottom: 1px solid var(--border); padding: 16px; display: flex; justify-content: space-between; align-items: center; }
+  header h1 { margin: 0; font-size: 1.2rem; }
+  header .auth { display: flex; gap: 12px; align-items: center; }
+  header button { background: var(--panel-2); color: var(--text); border: 1px solid var(--border); border-radius: 8px; padding: 8px 14px; cursor: pointer; font-size: .9rem; }
+  header button:hover { border-color: var(--accent); }
+
+  main { flex: 1; width: 100%; max-width: 1000px; margin: 0 auto; padding: 24px 16px; }
+
+  .tabs { display: flex; gap: 8px; margin-bottom: 24px; border-bottom: 1px solid var(--border); }
+  .tab-btn { background: none; border: none; color: var(--muted); padding: 12px 16px; cursor: pointer; font-size: .95rem; border-bottom: 2px solid transparent; }
+  .tab-btn.active { color: var(--accent); border-bottom-color: var(--accent); }
+  .tab-btn:hover { color: var(--text); }
+
+  .view { display: none; }
+  .view.active { display: block; }
+
+  /* Ads Tab */
+  .ads-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
+  .ads-header h2 { margin: 0; font-size: 1.1rem; }
+  .btn-create { background: var(--accent); color: #06121f; border: none; border-radius: 8px; padding: 10px 16px; cursor: pointer; font-weight: 600; }
+  .btn-create:hover { opacity: .9; }
+
+  .ads-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 16px; }
+  .ad-card { background: var(--panel); border: 1px solid var(--border); border-radius: 12px; overflow: hidden; display: flex; flex-direction: column; }
+  .ad-image { width: 100%; height: 180px; background: var(--bg); display: flex; align-items: center; justify-content: center; color: var(--muted); font-size: 2rem; }
+  .ad-image img { width: 100%; height: 100%; object-fit: cover; }
+  .ad-content { padding: 16px; flex: 1; display: flex; flex-direction: column; }
+  .ad-title { font-weight: 600; font-size: 1rem; margin: 0 0 8px; }
+  .ad-status { font-size: .8rem; color: var(--muted); margin-bottom: 8px; }
+  .ad-status.pending { color: var(--hard); }
+  .ad-status.approved { color: var(--good); }
+  .ad-status.rejected { color: var(--again); }
+  .ad-tags { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 12px; }
+  .ad-tag { font-size: .75rem; background: var(--bg); border: 1px solid var(--border); border-radius: 12px; padding: 3px 8px; color: var(--muted); }
+  .ad-actions { display: flex; gap: 8px; margin-top: auto; }
+  .ad-actions button { flex: 1; padding: 8px; border: none; border-radius: 6px; cursor: pointer; font-size: .85rem; }
+  .ad-edit { background: var(--panel-2); color: var(--text); border: 1px solid var(--border); }
+  .ad-edit:hover { border-color: var(--accent); }
+  .ad-delete { background: rgba(239,68,68,.2); color: var(--again); border: 1px solid var(--again); }
+  .ad-delete:hover { background: rgba(239,68,68,.3); }
+
+  .empty { text-align: center; color: var(--muted); padding: 40px 20px; }
+  .empty .big { font-size: 2rem; margin-bottom: 8px; }
+
+  /* Modal */
+  .modal { display: none; position: fixed; inset: 0; background: rgba(0,0,0,.7); z-index: 100; align-items: center; justify-content: center; padding: 16px; }
+  .modal.active { display: flex; }
+  .modal-card { background: var(--panel); border: 1px solid var(--border); border-radius: 14px; width: 100%; max-width: 500px; padding: 24px; position: relative; max-height: 90vh; overflow-y: auto; }
+  .modal-close { position: absolute; top: 12px; right: 14px; background: none; border: none; color: var(--muted); font-size: 1.5rem; cursor: pointer; }
+
+  .modal h2 { margin: 0 0 16px; font-size: 1.15rem; }
+  .modal label { display: block; font-size: .8rem; color: var(--muted); margin: 14px 0 4px; }
+  .modal input, .modal textarea { width: 100%; background: var(--bg); color: var(--text); border: 1px solid var(--border); border-radius: 8px; padding: 10px; font-size: .95rem; font-family: inherit; }
+  .modal textarea { resize: vertical; min-height: 80px; }
+
+  .modal .form-row { display: flex; gap: 12px; }
+  .modal .form-row > * { flex: 1; }
+
+  .tag-input-area { margin: 14px 0; }
+  .tag-input-area label { display: block; margin-bottom: 6px; }
+  .tag-input { display: flex; gap: 8px; flex-wrap: wrap; align-items: flex-start; }
+  .tag-chip { display: flex; align-items: center; gap: 6px; background: var(--accent); color: #06121f; border-radius: 20px; padding: 4px 10px; font-size: .85rem; }
+  .tag-chip button { background: none; border: none; color: #06121f; cursor: pointer; font-weight: bold; }
+  .tag-input input { flex: 1; min-width: 120px; }
+
+  .file-input-area { margin: 14px 0; }
+  .file-input { display: none; }
+  .file-label { display: flex; align-items: center; justify-content: center; gap: 8px; background: var(--bg); border: 2px dashed var(--border); border-radius: 8px; padding: 20px; cursor: pointer; color: var(--muted); text-align: center; transition: border-color .2s; }
+  .file-label:hover { border-color: var(--accent); color: var(--text); }
+  .file-preview { width: 100%; height: 150px; background: var(--bg); border-radius: 8px; margin-top: 10px; display: flex; align-items: center; justify-content: center; overflow: hidden; }
+  .file-preview img { width: 100%; height: 100%; object-fit: cover; }
+
+  .err { color: var(--again); font-size: .8rem; min-height: 18px; margin: 10px 0; }
+  .success { color: var(--good); font-size: .8rem; min-height: 18px; margin: 10px 0; }
+
+  .modal-actions { display: flex; gap: 12px; margin-top: 20px; }
+  .btn-primary { flex: 1; background: var(--accent); color: #06121f; border: none; border-radius: 8px; padding: 12px; font-weight: 600; cursor: pointer; }
+  .btn-primary:disabled { opacity: .6; cursor: default; }
+  .btn-secondary { flex: 1; background: var(--panel-2); color: var(--text); border: 1px solid var(--border); border-radius: 8px; padding: 12px; cursor: pointer; }
+
+  /* Profile Tab */
+  .profile-card { background: var(--panel); border: 1px solid var(--border); border-radius: 12px; padding: 20px; max-width: 500px; }
+  .profile-card h3 { margin: 0 0 16px; font-size: 1rem; }
+  .profile-field { margin-bottom: 12px; }
+  .profile-field label { display: block; font-size: .75rem; color: var(--muted); margin-bottom: 4px; }
+  .profile-field .value { font-size: .95rem; }
+  .profile-field .status { font-weight: 600; padding: 4px 10px; border-radius: 6px; display: inline-block; }
+  .profile-field .status.approved { background: rgba(34,197,94,.2); color: var(--good); }
+  .profile-field .status.pending { background: rgba(245,158,11,.2); color: var(--hard); }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>🎯 Company Dashboard</h1>
+  <div class="auth">
+    <span id="company-name" style="color: var(--muted);">--</span>
+    <button onclick="handleLogout()">Logout</button>
+  </div>
+</header>
+
+<main>
+  <div class="tabs">
+    <button class="tab-btn active" onclick="switchTab('ads')">📢 Advertisements</button>
+    <button class="tab-btn" onclick="switchTab('profile')">👤 Profile</button>
+  </div>
+
+  <!-- Ads Tab -->
+  <div id="ads-tab" class="view active">
+    <div class="ads-header">
+      <h2>Your Advertisements</h2>
+      <button class="btn-create" onclick="showCreateAdModal()">+ New Advertisement</button>
+    </div>
+    <div id="ads-list" class="ads-grid">
+      <div class="empty"><div class="big">📭</div>No advertisements yet</div>
+    </div>
+  </div>
+
+  <!-- Profile Tab -->
+  <div id="profile-tab" class="view">
+    <div class="profile-card">
+      <h3>Company Information</h3>
+      <div class="profile-field">
+        <label>Company Name</label>
+        <div class="value" id="profile-name">--</div>
+      </div>
+      <div class="profile-field">
+        <label>Email</label>
+        <div class="value" id="profile-email">--</div>
+      </div>
+      <div class="profile-field">
+        <label>Contact Name</label>
+        <div class="value" id="profile-contact-name">--</div>
+      </div>
+      <div class="profile-field">
+        <label>Contact Phone</label>
+        <div class="value" id="profile-contact-phone">--</div>
+      </div>
+      <div class="profile-field">
+        <label>Account Status</label>
+        <div class="value"><span id="profile-status" class="status">--</span></div>
+      </div>
+    </div>
+  </div>
+</main>
+
+<!-- Create/Edit Ad Modal -->
+<div id="ad-modal" class="modal">
+  <div class="modal-card">
+    <button class="modal-close" onclick="closeAdModal()">×</button>
+    <h2 id="modal-title">Create Advertisement</h2>
+
+    <label>Title</label>
+    <input id="ad-title" type="text" placeholder="e.g., Advanced DevOps Course">
+
+    <label>Description</label>
+    <textarea id="ad-description" placeholder="Tell users about your product..."></textarea>
+
+    <div class="tag-input-area">
+      <label>Keywords / Tags</label>
+      <div class="tag-input">
+        <div id="selected-tags"></div>
+        <select id="tag-dropdown" onchange="addTag()">
+          <option value="">Select a tag...</option>
+        </select>
+      </div>
+      <div style="font-size: .75rem; color: var(--muted); margin-top: 6px;">Select tags that match the words/topics you want your ad to appear with</div>
+    </div>
+
+    <div class="file-input-area">
+      <label>Product Image</label>
+      <input id="image-input" type="file" class="file-input" accept="image/*" onchange="handleImageSelect()">
+      <label for="image-input" class="file-label">
+        <span>📸 Click to upload or drag & drop</span>
+      </label>
+      <div id="image-preview" class="file-preview" style="display: none;"></div>
+    </div>
+
+    <div class="err" id="ad-error"></div>
+    <div class="success" id="ad-success"></div>
+
+    <div class="modal-actions">
+      <button class="btn-secondary" onclick="closeAdModal()">Cancel</button>
+      <button class="btn-primary" id="ad-submit-btn" onclick="saveAd()">Create Advertisement</button>
+    </div>
+  </div>
+</div>
+
+<script>
+  const API_BASE = '';
+  let currentCompany = null;
+  let currentAdId = null;
+  let selectedTags = [];
+  let selectedImage = null;
+  let allTags = [];
+
+  async function init() {
+    try {
+      const res = await fetch(`${API_BASE}/api/me/company`);
+      const data = await res.json();
+
+      if (!data.company) {
+        window.location.href = '/clogin';
+        return;
+      }
+
+      currentCompany = data.company;
+      document.getElementById('company-name').textContent = currentCompany.name;
+      updateProfileTab();
+      loadAds();
+      await loadAvailableTags();
+    } catch (e) {
+      console.error('Init error:', e);
+      window.location.href = '/clogin';
+    }
+  }
+
+  async function loadAvailableTags() {
+    try {
+      const res = await fetch(`${API_BASE}/api/tags`);
+      const data = await res.json();
+      allTags = data.tags || [];
+      updateTagDropdown();
+    } catch (e) {
+      console.error('Error loading tags:', e);
+      allTags = [];
+    }
+  }
+
+  function updateTagDropdown() {
+    const select = document.getElementById('tag-dropdown');
+    const existing = Array.from(select.options).map(o => o.value);
+
+    allTags.forEach(tag => {
+      if (!existing.includes(tag) && !selectedTags.includes(tag)) {
+        const opt = document.createElement('option');
+        opt.value = tag;
+        opt.textContent = tag;
+        select.appendChild(opt);
+      }
+    });
+  }
+
+  function addTag() {
+    const select = document.getElementById('tag-dropdown');
+    const tag = select.value;
+    if (tag && !selectedTags.includes(tag)) {
+      selectedTags.push(tag);
+      renderSelectedTags();
+      select.value = '';
+    }
+  }
+
+  function removeTag(tag) {
+    selectedTags = selectedTags.filter(t => t !== tag);
+    renderSelectedTags();
+  }
+
+  function renderSelectedTags() {
+    const container = document.getElementById('selected-tags');
+    container.innerHTML = selectedTags.map(tag =>
+      `<div class="tag-chip">${tag}<button onclick="removeTag('${tag}')">×</button></div>`
+    ).join('');
+  }
+
+  function handleImageSelect() {
+    const input = document.getElementById('image-input');
+    const file = input.files[0];
+    if (file) {
+      selectedImage = file;
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        const preview = document.getElementById('image-preview');
+        preview.innerHTML = `<img src="${e.target.result}" alt="preview">`;
+        preview.style.display = 'flex';
+      };
+      reader.readAsDataURL(file);
+    }
+  }
+
+  function updateProfileTab() {
+    document.getElementById('profile-name').textContent = currentCompany.name || '--';
+    document.getElementById('profile-email').textContent = currentCompany.email || '--';
+    document.getElementById('profile-contact-name').textContent = currentCompany.contact_name || '--';
+    document.getElementById('profile-contact-phone').textContent = currentCompany.contact_phone || '--';
+
+    const statusEl = document.getElementById('profile-status');
+    if (currentCompany.approved) {
+      statusEl.textContent = '✓ Approved';
+      statusEl.className = 'status approved';
+    } else {
+      statusEl.textContent = '⏳ Pending Approval';
+      statusEl.className = 'status pending';
+    }
+  }
+
+  async function loadAds() {
+    try {
+      const res = await fetch(`${API_BASE}/api/company/ads`);
+      if (!res.ok) {
+        if (res.status === 401) window.location.href = '/clogin';
+        return;
+      }
+      const data = await res.json();
+      renderAds(data.ads || []);
+    } catch (e) {
+      console.error('Error loading ads:', e);
+    }
+  }
+
+  function renderAds(ads) {
+    const container = document.getElementById('ads-list');
+    if (ads.length === 0) {
+      container.innerHTML = '<div class="empty" style="grid-column: 1/-1;"><div class="big">📭</div>No advertisements yet</div>';
+      return;
+    }
+
+    container.innerHTML = ads.map(ad => `
+      <div class="ad-card">
+        <div class="ad-image">
+          ${ad.image_url ? `<img src="${ad.image_url}" alt="${ad.title}">` : '📸'}
+        </div>
+        <div class="ad-content">
+          <div class="ad-title">${escapeHtml(ad.title)}</div>
+          <div class="ad-status ${ad.approved ? 'approved' : (ad.approved === false ? 'rejected' : 'pending')}">
+            ${ad.approved ? '✓ Approved' : (ad.approved === 0 ? '⏳ Pending' : '✗ Rejected')}
+          </div>
+          <div class="ad-tags">
+            ${(ad.tags || []).map(t => `<span class="ad-tag">${escapeHtml(t)}</span>`).join('')}
+          </div>
+          <div style="font-size: .8rem; color: var(--muted); margin-bottom: 8px;">
+            ${new Date(ad.created_at).toLocaleDateString()}
+          </div>
+        </div>
+        <div class="ad-actions">
+          <button class="ad-edit" onclick="editAd(${ad.id})">Edit</button>
+          <button class="ad-delete" onclick="deleteAd(${ad.id})">Delete</button>
+        </div>
+      </div>
+    `).join('');
+  }
+
+  function showCreateAdModal() {
+    currentAdId = null;
+    selectedTags = [];
+    selectedImage = null;
+    document.getElementById('modal-title').textContent = 'Create Advertisement';
+    document.getElementById('ad-title').value = '';
+    document.getElementById('ad-description').value = '';
+    document.getElementById('ad-error').textContent = '';
+    document.getElementById('ad-success').textContent = '';
+    document.getElementById('image-preview').style.display = 'none';
+    document.getElementById('image-input').value = '';
+    renderSelectedTags();
+    document.getElementById('ad-modal').classList.add('active');
+  }
+
+  async function editAd(adId) {
+    try {
+      const res = await fetch(`${API_BASE}/api/company/ads/${adId}`);
+      const data = await res.json();
+      const ad = data.ad;
+
+      currentAdId = adId;
+      selectedTags = ad.tags || [];
+      selectedImage = null;
+
+      document.getElementById('modal-title').textContent = 'Edit Advertisement';
+      document.getElementById('ad-title').value = ad.title;
+      document.getElementById('ad-description').value = ad.description;
+      document.getElementById('ad-submit-btn').textContent = 'Save Changes';
+
+      if (ad.image_url) {
+        const preview = document.getElementById('image-preview');
+        preview.innerHTML = `<img src="${ad.image_url}" alt="${ad.title}">`;
+        preview.style.display = 'flex';
+      }
+
+      renderSelectedTags();
+      document.getElementById('ad-modal').classList.add('active');
+    } catch (e) {
+      alert('Error loading ad: ' + e.message);
+    }
+  }
+
+  async function deleteAd(adId) {
+    if (!confirm('Are you sure you want to delete this advertisement?')) return;
+
+    try {
+      const res = await fetch(`${API_BASE}/api/company/ads/${adId}`, { method: 'DELETE' });
+      if (res.ok) {
+        loadAds();
+      } else {
+        alert('Failed to delete ad');
+      }
+    } catch (e) {
+      alert('Error: ' + e.message);
+    }
+  }
+
+  async function saveAd() {
+    const title = document.getElementById('ad-title').value.trim();
+    const description = document.getElementById('ad-description').value.trim();
+    const errEl = document.getElementById('ad-error');
+    const successEl = document.getElementById('ad-success');
+    const btn = document.getElementById('ad-submit-btn');
+
+    errEl.textContent = '';
+    successEl.textContent = '';
+
+    if (!title || !description) {
+      errEl.textContent = 'Please fill in title and description';
+      return;
+    }
+
+    if (selectedTags.length === 0) {
+      errEl.textContent = 'Please select at least one tag';
+      return;
+    }
+
+    btn.disabled = true;
+
+    try {
+      let imageUrl = null;
+
+      if (selectedImage) {
+        console.log('📸 Uploading image:', selectedImage.name);
+        const formData = new FormData();
+        formData.append('file', selectedImage);
+
+        const uploadRes = await fetch(`${API_BASE}/api/company/ads/${currentAdId || 'new'}/image`, {
+          method: 'POST',
+          body: formData,
+        });
+        console.log('📤 Image upload response:', uploadRes.status);
+        if (!uploadRes.ok) {
+          throw new Error('Image upload failed: ' + uploadRes.status);
+        }
+        const uploadData = await uploadRes.json();
+        imageUrl = uploadData.image_url;
+        console.log('✓ Got image URL:', imageUrl);
+      } else {
+        console.log('⚠ No image selected');
+      }
+
+      const payload = { title, description, tags: selectedTags };
+      if (imageUrl) {
+        payload.image_url = imageUrl;
+        console.log('✓ Adding image_url to payload:', imageUrl);
+      } else {
+        console.log('⚠ Image URL is null/empty');
+      }
+      console.log('📤 Final payload:', payload);
+
+      const method = currentAdId ? 'PUT' : 'POST';
+      const url = currentAdId ? `/api/company/ads/${currentAdId}` : '/api/company/ads';
+
+      const res = await fetch(`${API_BASE}${url}`, {
+        method,
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+      });
+
+      if (res.ok) {
+        successEl.textContent = '✓ Advertisement saved!';
+        setTimeout(() => {
+          closeAdModal();
+          loadAds();
+        }, 1000);
+      } else {
+        const err = await res.json();
+        errEl.textContent = err.detail || 'Failed to save ad';
+      }
+    } catch (e) {
+      errEl.textContent = 'Error: ' + e.message;
+    } finally {
+      btn.disabled = false;
+    }
+  }
+
+  function closeAdModal() {
+    document.getElementById('ad-modal').classList.remove('active');
+  }
+
+  function switchTab(tab) {
+    document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
+    document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+    document.getElementById(tab + '-tab').classList.add('active');
+    event.target.classList.add('active');
+  }
+
+  async function handleLogout() {
+    try {
+      await fetch(`${API_BASE}/auth/company/logout`, { method: 'POST' });
+      window.location.href = '/clogin';
+    } catch (e) {
+      console.error('Logout error:', e);
+    }
+  }
+
+  function escapeHtml(text) {
+    const map = { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#039;' };
+    return text.replace(/[&<>"']/g, m => map[m]);
+  }
+
+  init();
+</script>
+
+</body>
+</html>

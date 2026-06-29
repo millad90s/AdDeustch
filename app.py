@@ -8,6 +8,7 @@ import os
 import re
 import secrets
 import threading
+from io import BytesIO
 from pathlib import Path
 
 from dotenv import load_dotenv
@@ -15,6 +16,12 @@ from fastapi import FastAPI, File, HTTPException, Request, UploadFile
 from fastapi.responses import FileResponse, RedirectResponse, StreamingResponse
 from pydantic import BaseModel, Field
 from starlette.middleware.sessions import SessionMiddleware
+
+try:
+    from minio import Minio
+    MINIO_AVAILABLE = True
+except ImportError:
+    MINIO_AVAILABLE = False
 
 import ai
 import db
@@ -49,8 +56,38 @@ OAUTH_REDIRECT_URI = os.getenv("OAUTH_REDIRECT_URI", "http://localhost:8000/auth
 SESSION_SECRET = os.getenv("SESSION_SECRET") or secrets.token_hex(32)
 AUTH_ENABLED = bool(GOOGLE_CLIENT_ID and GOOGLE_CLIENT_SECRET)
 
+# Enrichment service for sentence generation
+ENRICHMENT_ENDPOINT = os.getenv("ENRICHMENT_ENDPOINT", "http://localhost:7000")
+ENRICHMENT_ENABLED = os.getenv("ENRICHMENT_ENABLED", "true").lower() in ("1", "true", "yes")
+
+# MinIO configuration for image storage
+MINIO_ENDPOINT = os.getenv("MINIO_ENDPOINT", "127.0.0.1:9000")
+MINIO_ACCESS_KEY = os.getenv("MINIO_ACCESS_KEY", "milad")
+MINIO_SECRET_KEY = os.getenv("MINIO_SECRET_KEY", "12345678")
+MINIO_BUCKET = os.getenv("MINIO_BUCKET", "flashcard-ads")
+MINIO_USE_SSL = os.getenv("MINIO_USE_SSL", "false").lower() in ("1", "true", "yes")
+MINIO_PUBLIC_URL = os.getenv("MINIO_PUBLIC_URL", "http://127.0.0.1:9000")
+MINIO_CLIENT = None
+if MINIO_AVAILABLE:
+    try:
+        MINIO_CLIENT = Minio(MINIO_ENDPOINT, access_key=MINIO_ACCESS_KEY, secret_key=MINIO_SECRET_KEY, secure=MINIO_USE_SSL)
+    except Exception as e:
+        print(f"Warning: Could not initialize MinIO client: {e}")
+
 app = FastAPI(title="German DevOps Flashcards")
-app.add_middleware(SessionMiddleware, secret_key=SESSION_SECRET, same_site="lax")
+_behind_proxy = os.getenv("BEHIND_PROXY", "").lower() in ("1", "true", "yes")
+# ProxyHeadersMiddleware must be added FIRST so X-Forwarded-Proto is rewritten
+# before SessionMiddleware sees the request scheme (needed for https_only cookies).
+if _behind_proxy:
+    from starlette.middleware.httpsredirect import HTTPSRedirectMiddleware
+    from uvicorn.middleware.proxy_headers import ProxyHeadersMiddleware
+    app.add_middleware(ProxyHeadersMiddleware, trusted_hosts="*")
+app.add_middleware(
+    SessionMiddleware,
+    secret_key=SESSION_SECRET,
+    same_site="lax",
+    https_only=_behind_proxy,
+)
 
 # --- Google OAuth (only wired up if credentials are present) ---
 oauth = None
@@ -80,6 +117,13 @@ class WordIn(BaseModel):
     category: str = "general"
     level: str = "B1"  # CEFR level this word is taught at (A1–C2)
     sentences: list[SentenceIn] = []
+    lemma: str | None = None  # base form of word
+    pos: str | None = None  # part of speech (noun, verb, adj, etc.)
+    article: str | None = None  # der, die, das
+    audio_url: str | None = None  # pronunciation audio link
+    word_url: str | None = None  # link to word info
+    unit_id: int | None = None  # lesson unit ID
+    tags: list[str] = []  # tags for categorization and ad matching
 
 
 class ProgressIn(BaseModel):
@@ -100,6 +144,7 @@ class GrammarIn(BaseModel):
 class ProfileIn(BaseModel):
     career: str = "general"
     level: str = "B1"
+    location: str | None = None
     daily_goal: int = Field(default=10, ge=1, le=100)
 
 
@@ -186,6 +231,19 @@ class LoginIn(BaseModel):
     password: str
 
 
+class CompanySignupIn(BaseModel):
+    email: str
+    password: str = Field(min_length=8)
+    name: str
+    contact_name: str | None = None
+    contact_phone: str | None = None
+
+
+class CompanyLoginIn(BaseModel):
+    email: str
+    password: str
+
+
 EMAIL_RE = re.compile(r"^[^@\s]+@[^@\s]+\.[^@\s]+$")
 
 
@@ -206,7 +264,16 @@ def startup():
 
 def current_user(request: Request):
     uid = request.session.get("user_id")
-    return db.get_user(uid) if uid else None
+    if uid:
+        return db.get_user(uid)
+
+    # Check for Bearer token in Authorization header
+    auth_header = request.headers.get("Authorization", "")
+    if auth_header.startswith("Bearer "):
+        token = auth_header[7:]
+        return db.get_user_by_token(token)
+
+    return None
 
 
 def require_user(request: Request):
@@ -233,6 +300,18 @@ def _public_user(user):
         "picture": user.get("picture"), "is_admin": is_admin(user),
         "tokens": user.get("tokens", 0),
     }
+
+
+def current_company(request: Request):
+    cid = request.session.get("company_id")
+    return db.get_company(cid) if cid else None
+
+
+def require_company(request: Request):
+    company = current_company(request)
+    if not company:
+        raise HTTPException(401, "company login required")
+    return company
 
 
 def _req_meta(request: Request):
@@ -288,6 +367,45 @@ async def auth_logout(request: Request):
 
 
 # --------------------------------------------------------------------------
+# company auth — email/password for companies
+# --------------------------------------------------------------------------
+@app.post("/auth/company/signup")
+def company_signup(body: CompanySignupIn, request: Request):
+    email = body.email.strip().lower()
+    if not EMAIL_RE.match(email):
+        raise HTTPException(400, "Please enter a valid email address.")
+    try:
+        company = db.create_company(email, body.password, body.name, body.contact_name, body.contact_phone)
+    except ValueError:
+        raise HTTPException(409, "An account with this email already exists.")
+    request.session["company_id"] = company["id"]
+    return {"ok": True, "company": {"id": company["id"], "name": company["name"], "email": company["email"], "approved": company["approved"]}}
+
+
+@app.post("/auth/company/login")
+def company_login(body: CompanyLoginIn, request: Request):
+    company = db.authenticate_company(body.email.strip().lower(), body.password)
+    if not company:
+        raise HTTPException(401, "Invalid email or password.")
+    request.session["company_id"] = company["id"]
+    return {"ok": True, "company": {"id": company["id"], "name": company["name"], "email": company["email"], "approved": company["approved"]}}
+
+
+@app.post("/auth/company/logout")
+async def company_logout(request: Request):
+    request.session.pop("company_id", None)
+    return {"ok": True}
+
+
+@app.get("/api/me/company")
+def api_me_company(request: Request):
+    company = current_company(request)
+    return {
+        "company": None if not company else {"id": company["id"], "name": company["name"], "email": company["email"], "approved": company["approved"]},
+    }
+
+
+# --------------------------------------------------------------------------
 # auth — Google OAuth (optional)
 # --------------------------------------------------------------------------
 @app.get("/auth/google")
@@ -301,11 +419,15 @@ async def auth_google(request: Request):
 async def auth_callback(request: Request):
     if not AUTH_ENABLED:
         raise HTTPException(503, "Google login is not configured on this server.")
-    token = await oauth.google.authorize_access_token(request)
+    try:
+        token = await oauth.google.authorize_access_token(request)
+    except Exception as e:
+        # User denied permission or other OAuth error occurred
+        return RedirectResponse("/?auth_error=Google+login+was+cancelled")
     info = token.get("userinfo") or {}
     if not info.get("sub"):
         raise HTTPException(400, "Could not read Google profile.")
-    user = db.upsert_user(
+    user, _ = db.upsert_user(
         info["sub"], info.get("email"), info.get("name"), info.get("picture")
     )
     request.session["user_id"] = user["id"]
@@ -341,6 +463,16 @@ def favicon():
 @app.get("/dashboard")
 def dashboard_page():
     return FileResponse(STATIC_DIR / "dashboard.html")
+
+
+@app.get("/clogin")
+def company_login_page():
+    return FileResponse(STATIC_DIR / "clogin.html")
+
+
+@app.get("/cdashboard")
+def company_dashboard_page():
+    return FileResponse(STATIC_DIR / "cdashboard.html")
 
 
 @app.get("/api/admin/dashboard")
@@ -398,6 +530,265 @@ def api_admin_save_settings(body: SettingsIn, request: Request):
     return {"ok": True, "active_provider": prov.name, "active_available": prov.available()}
 
 
+@app.get("/api/admin/companies")
+def api_admin_companies(request: Request):
+    """List pending companies (for admin approval)."""
+    require_admin(request)
+    pending = db.list_companies(approved=False)
+    approved = db.list_companies(approved=True)
+    return {"pending": pending, "approved": approved}
+
+
+@app.put("/api/admin/companies/{company_id}")
+def api_admin_approve_company(company_id: int, body: dict, request: Request):
+    """Approve or reject a company."""
+    require_admin(request)
+    approved = body.get("approved", False)
+    db.approve_company(company_id, approved)
+    return {"ok": True}
+
+
+@app.get("/api/admin/advertisements")
+def api_admin_advertisements(request: Request):
+    """List pending advertisements (for admin approval)."""
+    require_admin(request)
+    pending = db.list_pending_advertisements(approved=False)
+    approved = db.list_pending_advertisements(approved=True)
+    return {"pending": pending, "approved": approved}
+
+
+@app.put("/api/admin/advertisements/{ad_id}")
+def api_admin_approve_advertisement(ad_id: int, body: dict, request: Request):
+    """Approve/reject an advertisement, or toggle active status."""
+    require_admin(request)
+    approved = body.get("approved")
+    active = body.get("active")
+
+    ad = db.get_advertisement(ad_id)
+    if not ad:
+        raise HTTPException(404, "advertisement not found")
+
+    if approved is not None:
+        db.approve_advertisement(ad_id, approved)
+    if active is not None:
+        db.update_advertisement(ad_id, active=active)
+
+    return {"ok": True}
+
+
+@app.get("/api/admin/advertisements/{ad_id}/matching-words")
+def api_get_matching_words(ad_id: int, request: Request):
+    """Get all words whose tags match this ad's tags."""
+    require_admin(request)
+    words = db.get_words_for_ad(ad_id)
+    return {"words": words, "count": len(words)}
+
+
+# --------------------------------------------------------------------------
+# company advertisements
+# --------------------------------------------------------------------------
+@app.get("/api/tags")
+def api_get_tags():
+    """Get all available tags from word_tags table."""
+    tags = db.get_all_tags()
+    return {"tags": tags}
+
+
+# --------------------------------------------------------------------------
+# API tokens (admin only)
+# --------------------------------------------------------------------------
+@app.get("/api/admin/tokens")
+def api_list_tokens(request: Request):
+    """List API tokens for the admin user."""
+    user = require_admin(request)
+    tokens = db.list_api_tokens(user["id"])
+    return {"tokens": tokens}
+
+
+@app.post("/api/admin/tokens")
+def api_create_token(body: dict, request: Request):
+    """Create a new API token for the admin user."""
+    user = require_admin(request)
+    name = (body.get("name") or "").strip() or None
+    token = db.create_api_token(user["id"], name)
+    from datetime import datetime
+    return {"token": token, "name": name, "created_at": datetime.utcnow().isoformat()}
+
+
+@app.delete("/api/admin/tokens/{token_id}")
+def api_revoke_token(token_id: int, request: Request):
+    """Revoke an API token."""
+    user = require_admin(request)
+    db.revoke_api_token(user["id"], token_id)
+    return {"ok": True}
+
+
+@app.get("/api/company/ads")
+def api_get_company_ads(request: Request):
+    """Get all ads for the logged-in company."""
+    company = require_company(request)
+    ads = db.list_company_ads(company["id"])
+    return {"ads": ads}
+
+
+@app.get("/api/company/ads/{ad_id}")
+def api_get_company_ad(ad_id: int, request: Request):
+    """Get a specific ad (for editing)."""
+    company = require_company(request)
+    ad = db.get_advertisement(ad_id)
+    if not ad or ad["company_id"] != company["id"]:
+        raise HTTPException(404, "advertisement not found")
+    return {"ad": ad}
+
+
+@app.post("/api/company/ads")
+def api_create_ad(body: dict, request: Request):
+    """Create a new advertisement."""
+    company = require_company(request)
+    title = (body.get("title") or "").strip()
+    description = (body.get("description") or "").strip()
+    tags = body.get("tags") or []
+    image_url = body.get("image_url")
+    image_type = body.get("image_type")
+
+    print(f"\n=== CREATE AD ===")
+    print(f"Title: {title}")
+    print(f"Description: {description[:50]}...")
+    print(f"Tags: {tags}")
+    print(f"Image URL: {image_url}")
+    print(f"Image Type: {image_type}")
+    print(f"Request body: {body}")
+    print(f"=================\n")
+
+    if not title or len(title) > 200:
+        raise HTTPException(400, "title required (1-200 chars)")
+    if not description or len(description) > 2000:
+        raise HTTPException(400, "description required (1-2000 chars)")
+    if not tags or len(tags) > 20:
+        raise HTTPException(400, "tags required (1-20)")
+
+    ad = db.create_advertisement(company["id"], title, description, tags, image_url, image_type)
+    print(f"✓ Ad created: {ad}")
+    return {"ad": ad}
+
+
+@app.put("/api/company/ads/{ad_id}")
+def api_update_ad(ad_id: int, body: dict, request: Request):
+    """Update an advertisement."""
+    company = require_company(request)
+    ad = db.get_advertisement(ad_id)
+    if not ad or ad["company_id"] != company["id"]:
+        raise HTTPException(404, "advertisement not found")
+
+    title = (body.get("title") or "").strip() if "title" in body else None
+    description = (body.get("description") or "").strip() if "description" in body else None
+    tags = body.get("tags") if "tags" in body else None
+    image_url = body.get("image_url") if "image_url" in body else None
+
+    if title is not None and (not title or len(title) > 200):
+        raise HTTPException(400, "title must be 1-200 chars")
+    if description is not None and (not description or len(description) > 2000):
+        raise HTTPException(400, "description must be 1-2000 chars")
+    if tags is not None and (not tags or len(tags) > 20):
+        raise HTTPException(400, "tags must be 1-20")
+
+    db.update_advertisement(ad_id, title, description, tags, image_url)
+    return {"ok": True}
+
+
+@app.delete("/api/company/ads/{ad_id}")
+def api_delete_ad(ad_id: int, request: Request):
+    """Delete an advertisement."""
+    company = require_company(request)
+    ad = db.get_advertisement(ad_id)
+    if not ad or ad["company_id"] != company["id"]:
+        raise HTTPException(404, "advertisement not found")
+    db.delete_advertisement(ad_id)
+    return {"ok": True}
+
+
+@app.post("/api/company/ads/{ad_id_or_new}/image")
+async def api_upload_ad_image(ad_id_or_new: str, request: Request, file: UploadFile = File(...)):
+    """Upload image for an advertisement."""
+    print(f"\n=== IMAGE UPLOAD ===")
+    print(f"Ad ID: {ad_id_or_new}")
+    print(f"File: {file.filename}")
+    print(f"Content Type: {file.content_type}")
+
+    company = require_company(request)
+
+    if ad_id_or_new != "new":
+        ad = db.get_advertisement(int(ad_id_or_new))
+        if not ad or ad["company_id"] != company["id"]:
+            raise HTTPException(404, "advertisement not found")
+
+    if not file.content_type.startswith("image/"):
+        raise HTTPException(400, "file must be an image")
+
+    # Read and validate file size (5 MB limit)
+    contents = await file.read()
+    print(f"File size: {len(contents)} bytes")
+    if len(contents) > 5 * 1024 * 1024:
+        raise HTTPException(400, "image must be under 5 MB")
+
+    # Save file (MinIO if available, else local filesystem)
+    ext = file.filename.split(".")[-1] if "." in file.filename else "jpg"
+    filename = f"ads/{company['id']}_{secrets.token_hex(8)}.{ext}"
+    image_url = None
+
+    print(f"MINIO_CLIENT: {MINIO_CLIENT}")
+    print(f"MINIO_AVAILABLE: {MINIO_AVAILABLE}")
+    print(f"Filename: {filename}")
+
+    if MINIO_CLIENT:
+        try:
+            print(f"🚀 Uploading to MinIO: bucket={MINIO_BUCKET}, key={filename}")
+            MINIO_CLIENT.put_object(
+                MINIO_BUCKET,
+                filename,
+                BytesIO(contents),
+                length=len(contents),
+                content_type=file.content_type,
+            )
+            image_url = f"{MINIO_PUBLIC_URL}/{MINIO_BUCKET}/{filename}"
+            print(f"✓ Image uploaded to MinIO: {image_url}")
+        except Exception as e:
+            print(f"❌ MinIO upload failed: {e}")
+            import traceback
+            traceback.print_exc()
+            print(f"⚠ Falling back to local filesystem")
+            # Fallback to local filesystem
+            try:
+                file_path = MEDIA_DIR / filename
+                file_path.parent.mkdir(parents=True, exist_ok=True)
+                with open(file_path, "wb") as f:
+                    f.write(contents)
+                image_url = f"/media/{filename}"
+                print(f"✓ Image uploaded to local (fallback): {image_url}")
+            except Exception as e2:
+                print(f"❌ Local upload also failed: {e2}")
+                traceback.print_exc()
+    else:
+        # No MinIO - use local filesystem
+        print(f"📁 No MinIO client, using local filesystem")
+        try:
+            file_path = MEDIA_DIR / filename
+            print(f"File path: {file_path}")
+            file_path.parent.mkdir(parents=True, exist_ok=True)
+            with open(file_path, "wb") as f:
+                f.write(contents)
+            image_url = f"/media/{filename}"
+            print(f"✓ Image uploaded to local: {image_url}")
+        except Exception as e:
+            print(f"❌ Local upload failed: {e}")
+            import traceback
+            traceback.print_exc()
+
+    print(f"📤 Final image_url: {image_url}")
+    print(f"===================\n")
+    return {"image_url": image_url}
+
+
 @app.get("/api/words")
 def api_words(request: Request, career: str | None = None):
     # career → each word carries career-relevant + generic sentences and a
@@ -419,6 +810,94 @@ def _get_gen_lock(word_id: int, career: str) -> threading.Lock:
         if key not in _gen_locks:
             _gen_locks[key] = threading.Lock()
         return _gen_locks[key]
+
+
+def _call_enrichment_service(word: str, career: str, level: str) -> tuple[list[dict], dict] | None:
+    """Call external enrichment service to get word data including sentences.
+    Returns tuple of (sentences_list, metadata_dict) or None if failed.
+
+    sentences_list: list of {"de": "...", "en": "...", "tags": [...]}
+    metadata_dict contains: audio_url, word_url, meanings, tags
+    """
+    if not ENRICHMENT_ENABLED:
+        return None
+
+    try:
+        import requests
+
+        payload = {
+            "word": word,
+            "career": career,
+            "level": level
+        }
+
+        print(f"📡 Calling enrichment service: {ENRICHMENT_ENDPOINT}/enrich")
+        print(f"📤 Payload: {payload}")
+
+        response = requests.post(
+            f"{ENRICHMENT_ENDPOINT}/enrich",
+            json=payload,
+            timeout=30
+        )
+
+        print(f"📥 Response status: {response.status_code}")
+
+        if response.status_code != 200:
+            print(f"❌ Enrichment service error: {response.status_code}")
+            print(f"Response body: {response.text}")
+            return None
+
+        data = response.json()
+        print(f"✅ Parsed response: {data}")
+
+        # Extract sentences/examples with tags
+        examples = data.get("examples", [])
+        print(f"📌 Found {len(examples)} examples in response")
+
+        result_sentences = []
+
+        # Parse examples: each should have language=de, example, translation, tags
+        for i, ex in enumerate(examples):
+            de_text = ex.get("example")
+            en_text = ex.get("translation")
+            sent_tags = ex.get("tags", data.get("tags", []))
+
+            if de_text and en_text:
+                if not isinstance(sent_tags, list):
+                    sent_tags = data.get("tags", [])
+
+                result_sentences.append({
+                    "de": de_text,
+                    "en": en_text,
+                    "tags": sent_tags
+                })
+                print(f"   ✓ Example {i+1}: {len(sent_tags)} tags")
+            else:
+                print(f"   ✗ Example {i+1}: Missing example or translation")
+
+        if not result_sentences:
+            print(f"⚠ No valid examples found in enrichment response")
+            return None
+
+        # Extract metadata
+        metadata = {
+            "audio_url": data.get("audio_url"),
+            "word_url": data.get("word_url"),
+            "meanings": data.get("meanings", []),
+            "tags": data.get("tags", [])
+        }
+
+        print(f"📊 Metadata extracted:")
+        print(f"   Audio URL: {metadata['audio_url']}")
+        print(f"   Word URL: {metadata['word_url']}")
+        print(f"   Meanings: {len(metadata['meanings'])} items")
+        print(f"   Tags: {metadata['tags']}")
+        print(f"✓ Generated {len(result_sentences)} sentences + metadata from enrichment service")
+        return (result_sentences, metadata)
+
+    except Exception as e:
+        print(f"❌ Enrichment service failed: {e}")
+        return None
 
 
 @app.post("/api/words/{word_id}/generate")
@@ -446,15 +925,54 @@ def api_generate_sentences(word_id: int, body: GenerateIn, request: Request):
         with _get_gen_lock(word_id, body.career):
             # Re-check inside the lock — another request may have just finished
             if db.career_sentence_count(word_id, body.career) == 0:
-                provider = get_ai()
-                if not provider.available():
-                    db.log_event("generate", "error", "AI not configured", uid, word_id, body.career)
-                    raise HTTPException(503, "AI sentence generation is not configured on this server.")
-                pairs = provider.generate_sentences(words[word_id]["word"], body.career, body.level, body.n)
-                if not pairs:
-                    db.log_event("generate", "error", "AI returned no sentences", uid, word_id, body.career)
-                    raise HTTPException(502, "The AI provider returned no usable sentences.")
-                inserted = db.add_career_sentences(word_id, body.career, pairs)
+                # Try enrichment service first
+                print(f"\n🎯 Generating sentences for word_id={word_id}, career={body.career}, level={body.level}")
+                enrichment_result = _call_enrichment_service(words[word_id]["word"], body.career, body.level)
+                pairs = None
+                metadata = {}
+
+                if enrichment_result:
+                    print(f"✓ Enrichment service returned data")
+                    sentences_with_tags, metadata = enrichment_result
+                    print(f"   Got {len(sentences_with_tags)} sentences with tags")
+
+                    # Update word with enriched metadata
+                    if metadata.get("audio_url") or metadata.get("word_url"):
+                        print(f"   Updating word metadata...")
+                        with db.connect() as conn:
+                            if metadata.get("audio_url"):
+                                conn.execute("UPDATE words SET audio_url = ? WHERE id = ?", (metadata["audio_url"], word_id))
+                                print(f"     ✓ audio_url updated")
+                            if metadata.get("word_url"):
+                                conn.execute("UPDATE words SET word_url = ? WHERE id = ?", (metadata["word_url"], word_id))
+                                print(f"     ✓ word_url updated")
+
+                    if metadata.get("tags"):
+                        print(f"   Setting word tags: {metadata['tags']}")
+                        db.set_tags(word_id, metadata["tags"])
+
+                    # Add sentences with their tags
+                    print(f"   Adding sentences with tags...")
+                    inserted = db.add_career_sentences_with_tags(word_id, body.career, sentences_with_tags)
+                    print(f"     ✓ {len(inserted)} sentences inserted")
+                    pairs = None
+                else:
+                    print(f"⚠ Enrichment service failed, will fall back to AI provider")
+
+                # Fall back to built-in AI provider if enrichment failed
+                if not inserted:
+                    print(f"📡 Enrichment service unavailable, falling back to AI provider")
+                    provider = get_ai()
+                    if not provider.available():
+                        db.log_event("generate", "error", f"AI not available ({provider.name})", uid, word_id, body.career)
+                        raise HTTPException(503, "AI sentence generation is not configured on this server.")
+                    pairs = provider.generate_sentences(words[word_id]["word"], body.career, body.level, body.n)
+
+                    if not pairs:
+                        db.log_event("generate", "error", "No sentences generated from any provider", uid, word_id, body.career)
+                        raise HTTPException(502, "Could not generate sentences from any provider.")
+
+                    inserted = db.add_career_sentences(word_id, body.career, pairs)
             cached = True  # sentences now exist (either just generated or by the concurrent winner)
 
     tokens = user.get("tokens")
@@ -476,7 +994,16 @@ def api_add_word(body: WordIn, request: Request):
     word_id, created = db.add_word(
         body.word, body.category,
         [(s.sentence_de, s.sentence_en) for s in body.sentences], body.level,
+        lemma=body.lemma, pos=body.pos, article=body.article,
+        audio_url=body.audio_url, word_url=body.word_url, unit_id=body.unit_id
     )
+    # Add tags if provided
+    print(f"🏷️  Setting tags for word_id={word_id}: {body.tags}")
+    if body.tags:
+        db.set_tags(word_id, body.tags)
+        print(f"✓ Tags set successfully")
+    else:
+        print(f"⚠ No tags provided")
     # `created` is False when the word already existed and we merged sentences.
     return {"id": word_id, "created": created}
 
@@ -486,11 +1013,15 @@ def api_add_words_batch(body: list[WordIn], request: Request):
     require_admin(request)
     if not body:
         raise HTTPException(400, "send a non-empty list of words")
-    results = [
-        db.add_word(w.word, w.category,
-                    [(s.sentence_de, s.sentence_en) for s in w.sentences], w.level)
-        for w in body
-    ]
+    results = []
+    for w in body:
+        word_id, created = db.add_word(w.word, w.category,
+                    [(s.sentence_de, s.sentence_en) for s in w.sentences], w.level,
+                    lemma=w.lemma, pos=w.pos, article=w.article,
+                    audio_url=w.audio_url, word_url=w.word_url, unit_id=w.unit_id)
+        if w.tags:
+            db.set_tags(word_id, w.tags)
+        results.append((word_id, created))
     ids = [wid for wid, _ in results]
     created = sum(1 for _, c in results if c)
     return {"ids": ids, "created": created, "merged": len(results) - created}
@@ -772,7 +1303,7 @@ def api_get_profile(request: Request):
 @app.put("/api/profile")
 def api_put_profile(body: ProfileIn, request: Request):
     user = require_user(request)
-    db.save_profile(user["id"], body.career, body.level, body.daily_goal)
+    db.save_profile(user["id"], body.career, body.level, body.daily_goal, body.location)
     return {"ok": True}
 
 

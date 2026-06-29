@@ -32,3 +32,14 @@ login:
 curl -c cookies.txt -X POST http://localhost:8000/auth/login \
   -H "Content-Type: application/json" \
   -d '{"email": "millad90s@gmail.com", "password": "millad90ss"}'
+
+
+
+
+
+  ==== minio commands
+  # create bucket:
+  ??
+
+  # make bucket public:
+  mc anonymous set public minio/flashcard-ads

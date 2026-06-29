@@ -173,6 +173,9 @@ function render(d) {
       <button class="dtab" data-tab="content">Content</button>
       <button class="dtab" data-tab="sales">Tokens &amp; Sales</button>
       <button class="dtab" data-tab="ai">AI</button>
+      <button class="dtab" data-tab="companies">🎯 Companies</button>
+      <button class="dtab" data-tab="advertisements">📢 Ads</button>
+      <button class="dtab" data-tab="tokens">🔑 API Tokens</button>
       <button class="dtab" data-tab="logs">Logs</button>
     </div>
 
@@ -235,6 +238,18 @@ function render(d) {
       <div id="ai-settings"></div>
     </div>
 
+    <div class="tab-panel" data-panel="companies">
+      <div id="companies-content"><div class="gate">Loading companies...</div></div>
+    </div>
+
+    <div class="tab-panel" data-panel="advertisements">
+      <div id="advertisements-content"><div class="gate">Loading advertisements...</div></div>
+    </div>
+
+    <div class="tab-panel" data-panel="tokens">
+      <div id="tokens-content"><div class="gate">Loading tokens...</div></div>
+    </div>
+
     <div class="tab-panel" data-panel="logs">
       <h2>Recent API calls (${d.recent_logs.length})</h2>
       <div class="scroll"><table>
@@ -273,6 +288,9 @@ function showTab(name) {
   document.querySelectorAll('.dtab').forEach(b => b.classList.toggle('active', b.dataset.tab === name));
   document.querySelectorAll('.tab-panel').forEach(p => p.classList.toggle('active', p.dataset.panel === name));
   if (name === 'content') loadContent();
+  if (name === 'companies') loadCompanies();
+  if (name === 'advertisements') loadAdvertisements();
+  if (name === 'tokens') loadTokens();
   document.querySelectorAll('.ctab').forEach(b => b.onclick = () => showCtab(b.dataset.ctab));
 }
 function showCtab(name) {
@@ -619,6 +637,320 @@ async function grant(email, btn) {
     render(DATA);   // refresh totals + rows
   } catch { alert('Network error.'); btn.disabled = false; }
 }
+
+async function loadCompanies() {
+  const el = $('#companies-content');
+  el.innerHTML = '<div class="gate">Loading...</div>';
+  try {
+    const r = await fetch('/api/admin/companies');
+    const data = await r.json();
+    const pending = data.pending || [];
+    const approved = data.approved || [];
+
+    const companyRow = (c, isPending) => `<div class="u-admin-row">
+      <div style="flex:1">
+        <div style="font-weight:600">${esc(c.name)}</div>
+        <div class="muted">${esc(c.email)}</div>
+      </div>
+      <div class="muted">${esc(c.contact_name || '—')}</div>
+      ${isPending ? `
+        <button onclick="approveCompany(${c.id}, true)" style="background:var(--good);color:#fff;border:none;border-radius:6px;padding:5px 12px;cursor:pointer;font-weight:700;font-size:.78rem">Approve</button>
+        <button onclick="approveCompany(${c.id}, false)" style="background:var(--bad);color:#fff;border:none;border-radius:6px;padding:5px 12px;cursor:pointer;font-weight:700;font-size:.78rem">Reject</button>
+      ` : `<span class="pill cached" style="background:rgba(34,197,94,.18);color:var(--good)">✓ Approved</span>`}
+    </div>`;
+
+    el.innerHTML = `
+      <h2>Pending Approval (${pending.length})</h2>
+      ${pending.length === 0 ? '<div class="muted">No pending companies.</div>' : pending.map(c => companyRow(c, true)).join('')}
+      <h2>Approved Companies (${approved.length})</h2>
+      ${approved.length === 0 ? '<div class="muted">No approved companies yet.</div>' : approved.map(c => companyRow(c, false)).join('')}
+    `;
+  } catch (e) {
+    el.innerHTML = '<div class="gate">Error loading companies: ' + esc(e.message) + '</div>';
+  }
+}
+
+async function loadAdvertisements() {
+  const el = $('#advertisements-content');
+  el.innerHTML = '<div class="gate">Loading...</div>';
+  try {
+    const r = await fetch('/api/admin/advertisements');
+    const data = await r.json();
+    const pending = data.pending || [];
+    const approved = data.approved || [];
+
+    const adRow = (a, isPending) => `<div style="background:var(--panel);border:1px solid var(--border);border-radius:12px;padding:12px;margin-bottom:10px">
+      <div style="display:flex;gap:12px">
+        ${a.image_url ? `<img src="${esc(a.image_url)}" style="width:80px;height:80px;border-radius:8px;object-fit:cover">` : '<div style="width:80px;height:80px;background:var(--bg);border-radius:8px;display:flex;align-items:center;justify-content:center;color:var(--muted)">📸</div>'}
+        <div style="flex:1">
+          <div style="font-weight:600">${esc(a.title)}</div>
+          <div class="muted" style="font-size:.8rem;margin-bottom:6px">${esc(a.company_name || 'Unknown')}</div>
+          <div class="muted" style="font-size:.8rem">${esc(a.description.substring(0, 80))}...</div>
+          ${a.tags && a.tags.length ? `<div style="margin-top:6px;display:flex;flex-wrap:wrap;gap:4px">${a.tags.map(t => `<span class="pill" style="background:var(--bg);color:var(--text)">${esc(t)}</span>`).join('')}</div>` : ''}
+          <div style="margin-top:8px">
+            <button onclick="showMatchingWords(${a.id})" style="background:none;border:none;color:var(--accent);cursor:pointer;text-decoration:underline;font-size:.8rem;padding:0">
+              📊 View matching words
+            </button>
+          </div>
+        </div>
+        <div style="display:flex;flex-direction:column;gap:6px">
+          ${isPending ? `
+            <button onclick="approveAd(${a.id}, true)" style="background:var(--good);color:#fff;border:none;border-radius:6px;padding:5px 12px;cursor:pointer;font-weight:700;font-size:.78rem;white-space:nowrap">Approve</button>
+            <button onclick="approveAd(${a.id}, false)" style="background:var(--bad);color:#fff;border:none;border-radius:6px;padding:5px 12px;cursor:pointer;font-weight:700;font-size:.78rem;white-space:nowrap">Reject</button>
+          ` : `
+            <button onclick="toggleAdStatus(${a.id}, ${a.active ? 0 : 1})" style="background:var(--panel-2);color:var(--text);border:1px solid var(--border);border-radius:6px;padding:5px 12px;cursor:pointer;font-weight:700;font-size:.78rem;white-space:nowrap">${a.active ? 'Deactivate' : 'Activate'}</button>
+          `}
+        </div>
+      </div>
+    </div>`;
+
+    el.innerHTML = `
+      <h2>Pending Approval (${pending.length})</h2>
+      ${pending.length === 0 ? '<div class="muted">No pending advertisements.</div>' : pending.map(a => adRow(a, true)).join('')}
+      <h2>Approved Advertisements (${approved.length})</h2>
+      ${approved.length === 0 ? '<div class="muted">No approved advertisements yet.</div>' : approved.map(a => adRow(a, false)).join('')}
+    `;
+  } catch (e) {
+    el.innerHTML = '<div class="gate">Error loading advertisements: ' + esc(e.message) + '</div>';
+  }
+}
+
+async function approveCompany(companyId, approve) {
+  if (!confirm('Are you sure?')) return;
+  try {
+    const r = await fetch(`/api/admin/companies/${companyId}`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ approved: approve })
+    });
+    if (r.ok) loadCompanies();
+    else alert('Failed to update company');
+  } catch (e) {
+    alert('Error: ' + e.message);
+  }
+}
+
+async function approveAd(adId, approve) {
+  if (!confirm('Are you sure?')) return;
+  try {
+    const r = await fetch(`/api/admin/advertisements/${adId}`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ approved: approve })
+    });
+    if (r.ok) loadAdvertisements();
+    else alert('Failed to update advertisement');
+  } catch (e) {
+    alert('Error: ' + e.message);
+  }
+}
+
+async function toggleAdStatus(adId, active) {
+  try {
+    const r = await fetch(`/api/admin/advertisements/${adId}`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ active: active })
+    });
+    if (r.ok) loadAdvertisements();
+    else alert('Failed to update advertisement');
+  } catch (e) {
+    alert('Error: ' + e.message);
+  }
+}
+
+async function loadTokens() {
+  const el = $('#tokens-content');
+  el.innerHTML = '<div class="gate">Loading...</div>';
+  try {
+    const r = await fetch('/api/admin/tokens');
+    const data = await r.json();
+    const tokens = data.tokens || [];
+
+    el.innerHTML = `
+      <div style="margin-bottom:20px">
+        <h2>API Tokens</h2>
+        <p style="color:var(--muted);font-size:.9rem">Create tokens to authenticate API requests without logging in. Use: <code>Authorization: Bearer YOUR_TOKEN</code></p>
+        <button onclick="showCreateTokenModal()" style="background:var(--accent);color:#06121f;border:none;border-radius:8px;padding:10px 16px;cursor:pointer;font-weight:700">+ Generate Token</button>
+      </div>
+
+      ${tokens.length === 0 ? '<div class="muted">No tokens created yet.</div>' : `
+        <div style="overflow-x:auto">
+          <table style="width:100%;border-collapse:collapse;font-size:.82rem">
+            <thead>
+              <tr style="border-bottom:1px solid var(--border)">
+                <th style="text-align:left;padding:10px;color:var(--muted)">Name</th>
+                <th style="text-align:left;padding:10px;color:var(--muted)">Created</th>
+                <th style="text-align:left;padding:10px;color:var(--muted)">Last Used</th>
+                <th style="text-align:left;padding:10px;color:var(--muted)">Action</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${tokens.map(t => `
+                <tr style="border-bottom:1px solid var(--border)">
+                  <td style="padding:10px">${esc(t.name || '(unnamed)')}</td>
+                  <td style="padding:10px;color:var(--muted)">${fmtTime(t.created_at)}</td>
+                  <td style="padding:10px;color:var(--muted)">${esc(t.last_used_at ? fmtTime(t.last_used_at) : '—')}</td>
+                  <td style="padding:10px"><button onclick="revokeToken(${t.id})" style="background:rgba(239,68,68,.2);color:var(--bad);border:1px solid var(--bad);border-radius:6px;padding:5px 10px;cursor:pointer;font-size:.78rem">Revoke</button></td>
+                </tr>
+              `).join('')}
+            </tbody>
+          </table>
+        </div>
+      `}
+      <div id="token-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:100;align-items:center;justify-content:center;padding:16px">
+        <div style="background:var(--panel);border:1px solid var(--border);border-radius:14px;width:100%;max-width:400px;padding:24px">
+          <h2 style="margin:0 0 16px">Generate API Token</h2>
+          <label style="display:block;font-size:.8rem;color:var(--muted);margin:12px 0 4px">Name (optional)</label>
+          <input id="token-name" type="text" placeholder="e.g., CI/CD Pipeline" style="width:100%;background:var(--bg);color:var(--text);border:1px solid var(--border);border-radius:8px;padding:10px;font-size:.95rem">
+          <div id="token-error" style="color:var(--bad);font-size:.8rem;min-height:18px;margin:10px 0"></div>
+          <div style="display:flex;gap:12px;margin-top:20px">
+            <button onclick="closeTokenModal()" style="flex:1;background:var(--panel-2);color:var(--text);border:1px solid var(--border);border-radius:8px;padding:10px;cursor:pointer">Cancel</button>
+            <button onclick="createToken()" style="flex:1;background:var(--accent);color:#06121f;border:none;border-radius:8px;padding:10px;font-weight:700;cursor:pointer">Generate</button>
+          </div>
+        </div>
+      </div>
+    `;
+
+    document.getElementById('token-modal').style.display = 'flex';
+  } catch (e) {
+    el.innerHTML = '<div class="gate">Error loading tokens: ' + esc(e.message) + '</div>';
+  }
+}
+
+function showCreateTokenModal() {
+  const modal = $('#token-modal');
+  if (modal) {
+    document.getElementById('token-name').value = '';
+    document.getElementById('token-error').textContent = '';
+    modal.style.display = 'flex';
+  }
+}
+
+function closeTokenModal() {
+  const modal = $('#token-modal');
+  if (modal) modal.style.display = 'none';
+}
+
+async function createToken() {
+  const name = document.getElementById('token-name').value.trim() || null;
+  const errEl = document.getElementById('token-error');
+  errEl.textContent = '';
+
+  try {
+    const r = await fetch('/api/admin/tokens', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ name })
+    });
+    if (!r.ok) throw new Error('Failed to create token');
+    const data = await r.json();
+    const token = data.token;
+
+    // Show token in modal with copy button
+    const modal = $('#token-modal');
+    modal.innerHTML = `
+      <div style="background:var(--panel);border:1px solid var(--border);border-radius:14px;width:100%;max-width:500px;padding:24px">
+        <h2 style="margin:0 0 16px;color:var(--good)">✓ Token Created!</h2>
+        <p style="color:var(--muted);margin:0 0 16px">Copy this token now. You won't be able to see it again!</p>
+
+        <div style="background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:12px;margin-bottom:16px;display:flex;gap:8px;align-items:center">
+          <input id="token-display" type="text" value="${token}" readonly style="flex:1;background:transparent;color:var(--accent);border:none;font-family:monospace;font-size:.85rem;cursor:text">
+          <button onclick="copyToken()" style="background:var(--accent);color:#06121f;border:none;border-radius:6px;padding:8px 12px;cursor:pointer;font-weight:700;font-size:.8rem;white-space:nowrap">📋 Copy</button>
+        </div>
+
+        <div style="background:rgba(245,158,11,.1);border:1px solid var(--hard);border-radius:8px;padding:12px;margin-bottom:16px">
+          <div style="color:var(--hard);font-size:.8rem;font-weight:600;margin-bottom:6px">⚠ Security Note</div>
+          <div style="color:var(--muted);font-size:.75rem">
+            • Never share this token publicly<br>
+            • Store it securely (e.g., in your CI/CD secrets)<br>
+            • If leaked, revoke it immediately
+          </div>
+        </div>
+
+        <button onclick="closeTokenModal(); loadTokens()" style="width:100%;background:var(--accent);color:#06121f;border:none;border-radius:8px;padding:12px;font-weight:700;cursor:pointer">Done</button>
+      </div>
+    `;
+  } catch (e) {
+    errEl.textContent = 'Error: ' + e.message;
+  }
+}
+
+function copyToken() {
+  const input = document.getElementById('token-display');
+  input.select();
+  document.execCommand('copy');
+
+  // Show feedback
+  const btn = event.target;
+  const originalText = btn.textContent;
+  btn.textContent = '✓ Copied!';
+  btn.style.background = 'var(--good)';
+  setTimeout(() => {
+    btn.textContent = originalText;
+    btn.style.background = 'var(--accent)';
+  }, 2000);
+}
+
+async function revokeToken(tokenId) {
+  if (!confirm('Revoke this token? Any integrations using it will stop working.')) return;
+  try {
+    const r = await fetch(`/api/admin/tokens/${tokenId}`, { method: 'DELETE' });
+    if (r.ok) loadTokens();
+    else alert('Failed to revoke token');
+  } catch (e) {
+    alert('Error: ' + e.message);
+  }
+}
+
+async function showMatchingWords(adId) {
+  try {
+    const r = await fetch(`/api/admin/advertisements/${adId}/matching-words`);
+    const data = await r.json();
+    const words = data.words || [];
+    const count = data.count || 0;
+
+    // Create modal overlay
+    const modal = document.createElement('div');
+    modal.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:1000;display:flex;align-items:center;justify-content:center;padding:16px';
+
+    const content = document.createElement('div');
+    content.style.cssText = 'background:var(--panel);border:1px solid var(--border);border-radius:14px;width:100%;max-width:500px;max-height:70vh;overflow-y:auto;padding:24px';
+
+    content.innerHTML = `
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px">
+        <h2 style="margin:0;font-size:1.1rem">📊 Matching Words (${count})</h2>
+        <button onclick="this.closest('[role=dialog]').remove()" style="background:none;border:none;font-size:1.5rem;cursor:pointer;color:var(--muted)">×</button>
+      </div>
+
+      ${count === 0 ? `
+        <div style="color:var(--muted);text-align:center;padding:20px">
+          No words match this ad's tags yet.
+        </div>
+      ` : `
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+          ${words.map(w => `
+            <div style="background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:10px">
+              <div style="font-weight:600;color:var(--accent)">${esc(w.word)}</div>
+              <div style="font-size:.75rem;color:var(--muted);margin-top:4px">#${w.id}</div>
+            </div>
+          `).join('')}
+        </div>
+      `}
+    `;
+
+    modal.appendChild(content);
+    modal.setAttribute('role', 'dialog');
+    modal.onclick = (e) => {
+      if (e.target === modal) modal.remove();
+    };
+
+    document.body.appendChild(modal);
+  } catch (e) {
+    alert('Error loading matching words: ' + e.message);
+  }
+}
+
 load();
 </script>
 </body>
