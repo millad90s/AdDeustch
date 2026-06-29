@@ -1,3 +1,10 @@
+# [1.1.0](https://github.com/millad90s/addeustch/compare/v1.0.1...v1.1.0) (2026-06-29)
+
+
+### Features
+
+* version 3 ([c64410c](https://github.com/millad90s/addeustch/commit/c64410cb7ef489ab092d6dfceeb4df2e941333ff))
+
 ## [1.0.1](https://github.com/millad90s/addeustch/compare/v1.0.0...v1.0.1) (2026-06-29)
 
 
