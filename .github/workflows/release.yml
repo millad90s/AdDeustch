@@ -43,6 +43,8 @@ jobs:
           if [ -z "$VERSION" ]; then
             VERSION=$(git tag -l | sort -V | tail -1)
           fi
+          # Remove v prefix if present
+          VERSION=${VERSION#v}
           echo "version=${VERSION}" >> $GITHUB_OUTPUT
           echo "published=true" >> $GITHUB_OUTPUT
 
