@@ -13,8 +13,8 @@ jobs:
       contents: write
       packages: read
     outputs:
-      new_release_published: ${{ steps.semantic.outputs.new_release_published }}
-      new_release_version: ${{ steps.semantic.outputs.new_release_version }}
+      new_release_published: ${{ steps.version.outputs.published }}
+      new_release_version: ${{ steps.version.outputs.version }}
 
     steps:
       - name: Checkout code
@@ -25,7 +25,7 @@ jobs:
       - name: Set up Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: "20"
+          node-version: "22"
 
       - name: Install semantic-release
         run: npm install --save-dev semantic-release @semantic-release/changelog @semantic-release/git @semantic-release/github
@@ -36,10 +36,20 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: npx semantic-release
 
+      - name: Get version from git tag
+        id: version
+        run: |
+          VERSION=$(git describe --tags --abbrev=0 2>/dev/null || echo "")
+          if [ -z "$VERSION" ]; then
+            VERSION=$(git tag -l | sort -V | tail -1)
+          fi
+          echo "version=${VERSION}" >> $GITHUB_OUTPUT
+          echo "published=true" >> $GITHUB_OUTPUT
+
       - name: Output version
         run: |
-          echo "📦 Release Published: ${{ steps.semantic.outputs.new_release_published }}"
-          echo "🏷️  New Version: ${{ steps.semantic.outputs.new_release_version }}"
+          echo "📦 Release Published: ${{ steps.version.outputs.published }}"
+          echo "🏷️  New Version: ${{ steps.version.outputs.version }}"
 
   build:
     name: Build & Push Docker Image
