@@ -124,7 +124,7 @@ All schema changes must be **additive migrations** inside a single `_migrate(con
 |---|---|---|
 | user_id | INTEGER FK | |
 | unit_id | INTEGER FK | |
-| unlocked_at | REAL | unix timestamp |
+| un_at | REAL | unix timestamp |
 | completed_at | REAL | nullable |
 | PRIMARY KEY | (user_id, unit_id) | |
 
@@ -278,7 +278,7 @@ Configurable settings: `start_tokens`, `token_cost_generate`, `call_cost`, `refe
 ### Units (Lessons)
 | Method | Path | Description |
 |---|---|---|
-| GET | `/api/units` | List all units with locked/completed state for current user. |
+| GET | `/api/units` | List all units with /completed state for current user. |
 | POST | `/api/units` | Admin: create a unit. Body: `{title, description, level, token_cost, quiz_score, position}`. |
 | PUT | `/api/units/{id}/words` | Admin: set words for a unit. Body: `{word_ids: []}`. |
 | DELETE | `/api/units/{id}` | Admin: delete unit. |
@@ -382,11 +382,11 @@ Configurable settings: `start_tokens`, `token_cost_generate`, `call_cost`, `refe
 
 ### Units & Quiz
 - Units are groups of words with a title, level, token cost to unlock, and a score value.
-- Once unlocked, the user can take a 10-question multiple-choice quiz.
+- Once un, the user can take a 10-question multiple-choice quiz.
 - Quiz has Back/Forward navigation — answers are preserved while navigating.
 - On passing, `POST /api/units/{id}/score` is called once (idempotent — INSERT OR IGNORE in DB).
 - Score is added to user's total and shown in the progress section.
-- Each unit card shows: title, cost to unlock (🪙), score value (⭐), locked/unlocked/completed state.
+- Each unit card shows: title, cost to unlock (🪙), score value (⭐), /un/completed state.
 
 ### Inbox
 - Server-side message system. Messages are stored in `inbox` table.
@@ -453,7 +453,7 @@ Configurable settings: `start_tokens`, `token_cost_generate`, `call_cost`, `refe
 ### Readings Section
 - Short reading passages with title, body, level, and optional audio upload.
 - Audio served from `/media/` path.
-- Unlocked progressively (every N completed units).
+- Un progressively (every N completed units).
 
 ---
 

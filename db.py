@@ -58,6 +58,7 @@ SCHEMA = """
         article     TEXT,
         audio_url   TEXT,
         word_url    TEXT,
+        image_url   TEXT,
         created_at  TEXT NOT NULL DEFAULT (datetime('now'))
     );
     -- Admin-built unit packs: a named group of words at a level, with a token
@@ -311,7 +312,7 @@ def _migrate(conn):
     if wcols and "url" in wcols and "audio_url" not in wcols:
         conn.execute("ALTER TABLE words RENAME COLUMN url TO audio_url")
         wcols = [r["name"] for r in conn.execute("PRAGMA table_info(words)").fetchall()]
-    for col in ("lemma", "pos", "article", "audio_url", "word_url"):
+    for col in ("lemma", "pos", "article", "audio_url", "word_url", "image_url"):
         if wcols and col not in wcols:
             conn.execute(f"ALTER TABLE words ADD COLUMN {col} TEXT")
     # Rename category → topic in words table
@@ -325,6 +326,8 @@ def _migrate(conn):
     rcols = [r["name"] for r in conn.execute("PRAGMA table_info(readings)").fetchall()]
     if rcols and "audio_url" not in rcols:
         conn.execute("ALTER TABLE readings ADD COLUMN audio_url TEXT")
+    if rcols and "unit_id" not in rcols:
+        conn.execute("ALTER TABLE readings ADD COLUMN unit_id INTEGER REFERENCES units(id) ON DELETE CASCADE")
     ucols2 = [r["name"] for r in conn.execute("PRAGMA table_info(units)").fetchall()]
     if ucols2 and "quiz_score" not in ucols2:
         conn.execute("ALTER TABLE units ADD COLUMN quiz_score INTEGER NOT NULL DEFAULT 6")
@@ -642,27 +645,27 @@ def find_word(conn, word):
 
 def add_word(word, topic="general", sentences=None, level="B1",
              lemma=None, pos=None, article=None, audio_url=None, word_url=None,
-             unit_id=None):
+             image_url=None, unit_id=None):
     """Add a word, or merge sentences into an existing word with the same text
     (case-insensitive). Duplicate sentences are skipped. `level` is the CEFR level
     the word is taught at; lemma/pos/article are extra dictionary metadata,
-    audio_url is the pronunciation .mp3 link and word_url links to the word's
-    dictionary page. On an existing word these fields are updated to the values
-    provided. Returns (word_id, created) where `created` is True only if a new
-    word row was inserted."""
+    audio_url is the pronunciation .mp3 link, word_url links to the word's
+    dictionary page, and image_url is a link to an image of the word.
+    On an existing word these fields are updated to the values provided.
+    Returns (word_id, created) where `created` is True only if a new word row was inserted."""
     level = (level or "B1").strip().upper() or "B1"
     cat = (topic or "general").strip() or "general"
-    meta = tuple((v or "").strip() or None for v in (lemma, pos, article, audio_url, word_url))
+    meta = tuple((v or "").strip() or None for v in (lemma, pos, article, audio_url, word_url, image_url))
     with connect() as conn:
         existing = find_word(conn, word)
         if existing is not None:
             word_id, created = existing, False
             conn.execute(
-                "UPDATE words SET level=?, topic=?, lemma=?, pos=?, article=?, audio_url=?, word_url=?, unit_id=? WHERE id=?",
+                "UPDATE words SET level=?, topic=?, lemma=?, pos=?, article=?, audio_url=?, word_url=?, image_url=?, unit_id=? WHERE id=?",
                 (level, cat, *meta, unit_id, word_id))
         else:
             cur = conn.execute(
-                "INSERT INTO words (word, topic, level, lemma, pos, article, audio_url, word_url, unit_id) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
+                "INSERT INTO words (word, topic, level, lemma, pos, article, audio_url, word_url, image_url, unit_id) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
                 (word.strip(), cat, level, *meta, unit_id))
             word_id, created = cur.lastrowid, True
         for de, en in (sentences or []):
@@ -1150,7 +1153,8 @@ def list_units(level=None, user_id=None):
             d = dict(r)
             d["word_ids"] = wmap.get(r["id"], [])
             if user_id is not None:
-                d["paid"] = r["id"] in paid
+                # First unit is always unlocked (so user can start), OR user has unlocked it
+                d["paid"] = (r["position"] == 1) or (r["id"] in paid)
                 d["score_earned"] = r["id"] in scored
             out.append(d)
         return out
@@ -1434,6 +1438,15 @@ def unlock_unit(user_id, unit_id):
                      (user_id, unit_id, cost))
         bal = conn.execute("SELECT tokens FROM users WHERE id=?", (user_id,)).fetchone()["tokens"]
         return {"ok": True, "tokens": bal, "spent": cost}
+
+
+def unlock_unit_for_user(user_id, unit_id):
+    """Mark a unit as unlocked for a user (used when completing a unit). No token cost."""
+    with connect() as conn:
+        conn.execute(
+            "INSERT OR IGNORE INTO unit_unlocks (user_id, unit_id, tokens) VALUES (?, ?, ?)",
+            (user_id, unit_id, 0))
+        return True
 
 
 # --------------------------------------------------------------------------
@@ -1868,6 +1881,32 @@ def get_all_tags():
     with connect() as conn:
         rows = conn.execute("SELECT DISTINCT tag FROM word_tags ORDER BY tag").fetchall()
         return [r["tag"] for r in rows]
+
+
+# --------------------------------------------------------------------------
+# Readings
+# --------------------------------------------------------------------------
+def get_reading_by_unit(unit_id):
+    """Get the saved reading for a unit, if it exists."""
+    with connect() as conn:
+        row = conn.execute(
+            "SELECT id, title, body, level FROM readings WHERE unit_id = ?",
+            (unit_id,)
+        ).fetchone()
+        return dict(row) if row else None
+
+
+def save_reading(title, body, level, unit_id):
+    """Save a generated reading to the database."""
+    with connect() as conn:
+        conn.execute(
+            "INSERT INTO readings (title, body, level, unit_id) VALUES (?, ?, ?, ?)",
+            (title, body, level, unit_id)
+        )
+        conn.commit()  # Explicitly commit the transaction
+        # Get the ID of the inserted row
+        reading_id = conn.execute("SELECT last_insert_rowid()").fetchone()[0]
+        return reading_id
 
 
 # --------------------------------------------------------------------------

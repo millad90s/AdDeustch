@@ -122,6 +122,7 @@ class WordIn(BaseModel):
     article: str | None = None  # der, die, das
     audio_url: str | None = None  # pronunciation audio link
     word_url: str | None = None  # link to word info
+    image_url: str | None = None  # link to word image
     unit_id: int | None = None  # lesson unit ID
     tags: list[str] = []  # tags for categorization and ad matching
 
@@ -837,7 +838,7 @@ def _call_enrichment_service(word: str, career: str, level: str) -> tuple[list[d
         response = requests.post(
             f"{ENRICHMENT_ENDPOINT}/enrich",
             json=payload,
-            timeout=30
+            timeout=120  # Increased from 30s for AI sentence generation
         )
 
         print(f"📥 Response status: {response.status_code}")
@@ -995,7 +996,8 @@ def api_add_word(body: WordIn, request: Request):
         body.word, body.category,
         [(s.sentence_de, s.sentence_en) for s in body.sentences], body.level,
         lemma=body.lemma, pos=body.pos, article=body.article,
-        audio_url=body.audio_url, word_url=body.word_url, unit_id=body.unit_id
+        audio_url=body.audio_url, word_url=body.word_url, image_url=body.image_url,
+        unit_id=body.unit_id
     )
     # Add tags if provided
     print(f"🏷️  Setting tags for word_id={word_id}: {body.tags}")
@@ -1018,7 +1020,8 @@ def api_add_words_batch(body: list[WordIn], request: Request):
         word_id, created = db.add_word(w.word, w.category,
                     [(s.sentence_de, s.sentence_en) for s in w.sentences], w.level,
                     lemma=w.lemma, pos=w.pos, article=w.article,
-                    audio_url=w.audio_url, word_url=w.word_url, unit_id=w.unit_id)
+                    audio_url=w.audio_url, word_url=w.word_url, image_url=w.image_url,
+                    unit_id=w.unit_id)
         if w.tags:
             db.set_tags(word_id, w.tags)
         results.append((word_id, created))
@@ -1418,6 +1421,193 @@ def api_unit_score(unit_id: int, request: Request):
     awarded = db.award_unit_score(user["id"], unit_id)
     return {"awarded": awarded, "score": db.get_user_score(user["id"])}
 
+
+@app.post("/api/units/{unit_id}/complete")
+def api_unit_complete(unit_id: int, request: Request):
+    """Mark a unit as complete and unlock the next unit."""
+    user = require_user(request)
+    user_id = user["id"]
+
+    # Get current unit first
+    current_unit = db.get_unit(unit_id)
+    if not current_unit:
+        raise HTTPException(404, "Unit not found")
+
+    # Mark current unit as completed (unlock state)
+    db.unlock_unit_for_user(user_id, unit_id)
+
+    # Award quiz score for completion
+    score_awarded = db.award_unit_score(user_id, unit_id)
+
+    # Find and unlock next unit
+    all_units = db.list_units(user_id=user_id)  # Refresh units AFTER marking complete
+    print(f"📍 Current unit position: {current_unit['position']}")
+    print(f"📋 Looking for unit with position > {current_unit['position']}")
+    next_unit = next((u for u in all_units if u["position"] > current_unit["position"]), None)
+    if next_unit:
+        print(f"🔓 Found next unit: {next_unit['id']} (position {next_unit['position']})")
+        db.unlock_unit_for_user(user_id, next_unit["id"])
+        print(f"✅ Unit {unit_id} marked complete, Unit {next_unit['id']} auto-unlocked for user {user_id}")
+    else:
+        print(f"✅ Unit {unit_id} marked complete - no next unit (last unit)")
+
+    return {
+        "unit_id": unit_id,
+        "completed": True,
+        "score_awarded": score_awarded,
+        "next_unit_id": next_unit["id"] if next_unit else None,
+        "next_unit_name": next_unit["title"] if next_unit else None
+    }
+
+
+class ReadingIn(BaseModel):
+    level: str = "B1"
+    words: list[str] = []
+    unit_id: int | None = None
+
+@app.post("/api/reading")
+def api_reading(body: ReadingIn):
+    """Generate a ~80 word reading that includes the given words at the specified level.
+    Saves to database and reuses if reading already exists for this unit."""
+    import json
+    import re
+    import requests
+
+    print(f"\n🎯 /api/reading called with: level={body.level}, words={len(body.words)}, unit_id={body.unit_id}")
+
+    if not body.words:
+        raise HTTPException(400, "At least one word is required")
+
+    words_str = ", ".join(body.words)
+    level = (body.level or "B1").upper()
+
+    # Check if reading already exists for this unit
+    if body.unit_id:
+        try:
+            existing = db.get_reading_by_unit(body.unit_id)
+            if existing:
+                print(f"📚 Found existing reading for unit {body.unit_id}: {existing['title']}")
+                return {
+                    "id": existing["id"],
+                    "level": existing["level"],
+                    "words": body.words,
+                    "title": existing["title"],
+                    "text": existing["body"]
+                }
+        except Exception as e:
+            print(f"⚠️ Could not check for existing reading: {e}")
+
+    # Try enrichment service first if enabled (with short timeout)
+    if ENRICHMENT_ENABLED:
+        try:
+            resp = requests.post(
+                f"{ENRICHMENT_ENDPOINT}/reading",
+                json={"level": level, "words": body.words},
+                timeout=120  # Increased from 5s for AI content generation
+            )
+            if resp.status_code == 200:
+                data = resp.json()
+                print(f"📚 Got reading from enrichment service")
+                return {
+                    "level": level,
+                    "words": body.words,
+                    "title": data.get("title", "Reading"),
+                    "text": data.get("text", "")
+                }
+        except Exception:
+            pass  # Silently fail and fall back to AI provider
+
+    # Fall back to configured AI provider (Claude, Gemini, or Ollama)
+    prompt = f"""Create a brief, engaging German reading (~80 words) at CEFR level {level}.
+The reading must naturally include these key words: {words_str}
+
+Guidelines for level {level}:
+- A1: Use only the most common everyday words, present tense, very short sentences
+- A2: Use common everyday words, simple sentences, present/past tense
+- B1: Natural vocabulary and grammar, can use subordinate clauses
+- B2: Professional and everyday vocabulary, complex sentences acceptable
+- C1: Advanced vocabulary and complex structures acceptable
+- C2: Sophisticated, literary German acceptable
+
+Respond with ONLY a JSON object in this exact shape, no prose:
+{{"title": "<Short engaging title>", "text": "<The German reading text>"}}"""
+
+    try:
+        ai_provider = get_ai()
+        if not ai_provider.available():
+            raise HTTPException(503, "AI provider not available")
+
+        text = None
+        provider_name = getattr(ai_provider, 'name', 'unknown')
+
+        # Support different provider types
+        if hasattr(ai_provider, '_generate'):
+            # Ollama provider
+            print(f"📖 Reading: Using Ollama model '{ai_provider.model}'")
+            text = ai_provider._generate(prompt)
+            print(f"✅ Reading generated via Ollama ({len(text)} chars)")
+        elif hasattr(ai_provider, 'api_key') and hasattr(ai_provider, '_client_or_none'):
+            # Claude provider
+            print(f"📖 Reading: Using Claude model '{ai_provider.model}'")
+            import anthropic
+            client = ai_provider._client_or_none()
+            resp = client.messages.create(
+                model=ai_provider.model,
+                max_tokens=500,
+                system="You are a German language teacher creating engaging readings for learners.",
+                messages=[{"role": "user", "content": prompt}]
+            )
+            text = next((b.text for b in resp.content if getattr(b, "type", None) == "text"), "")
+            print(f"✅ Reading generated via Claude ({len(text)} chars)")
+        else:
+            raise HTTPException(503, f"Reading requires Claude, Gemini, or Ollama provider (got {provider_name})")
+
+        if not text or text.strip() == "":
+            raise HTTPException(500, "Empty response from AI provider")
+
+        # Parse JSON response
+        text = re.sub(r"^```(?:json)?|```$", "", text.strip(), flags=re.MULTILINE).strip()
+        m = re.search(r"\{.*\}", text, re.DOTALL)
+        if m:
+            text = m.group(0)
+
+        data = json.loads(text)
+        title = data.get("title", "Reading")
+        reading_text = data.get("text", "")
+
+        # Save to database (with or without unit_id)
+        reading_id = None
+        print(f"📝 Attempting to save reading: unit_id={body.unit_id}, title='{title}'")
+        try:
+            reading_id = db.save_reading(
+                title=title,
+                body=reading_text,
+                level=level,
+                unit_id=body.unit_id  # Can be None for free lessons
+            )
+            print(f"✅ Saved reading to database with ID {reading_id}")
+        except Exception as e:
+            print(f"❌ Error saving reading to database: {e}")
+            import traceback
+            traceback.print_exc()
+
+        return {
+            "id": reading_id,
+            "level": level,
+            "words": body.words,
+            "title": title,
+            "text": reading_text
+        }
+    except json.JSONDecodeError as e:
+        print(f"❌ JSON parse error: {e}")
+        import traceback
+        traceback.print_exc()
+        raise HTTPException(500, f"Invalid JSON from AI: {str(e)}")
+    except Exception as e:
+        print(f"❌ Reading generation error: {e}")
+        import traceback
+        traceback.print_exc()
+        raise HTTPException(500, f"Failed to generate reading: {str(e)}")
 
 @app.get("/api/events")
 async def api_events(request: Request):

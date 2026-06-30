@@ -1,0 +1,466 @@
+INFO:     Started server process [56406]
+INFO:     Waiting for application startup.
+INFO:     Application startup complete.
+INFO:     Uvicorn running on http://0.0.0.0:8000 (Press CTRL+C to quit)
+INFO:     127.0.0.1:60235 - "GET /api/events HTTP/1.1" 401 Unauthorized
+INFO:     127.0.0.1:60235 - "GET / HTTP/1.1" 200 OK
+INFO:     127.0.0.1:60235 - "GET /.well-known/appspecific/com.chrome.devtools.json HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:60238 - "GET /favicon.svg HTTP/1.1" 200 OK
+INFO:     127.0.0.1:60238 - "GET /api/me HTTP/1.1" 200 OK
+INFO:     127.0.0.1:60238 - "GET /favicon.svg HTTP/1.1" 200 OK
+INFO:     127.0.0.1:60238 - "GET /auth/google HTTP/1.1" 302 Found
+INFO:     127.0.0.1:60238 - "GET /auth/callback?state=fc7hj9NKuMLFIHHxO17m6Fh9FqBWJA&iss=https%3A%2F%2Faccounts.google.com&code=4%2F0AdkVLPwb5T3m9mV2iVChTu4-VXYXwVRhVZdfEg1kbX3_f8jPtMCVx1ay7hqz-jZ8dhD9NQ&scope=email+profile+https%3A%2F%2Fwww.googleapis.com%2Fauth%2Fuserinfo.profile+openid+https%3A%2F%2Fwww.googleapis.com%2Fauth%2Fuserinfo.email&authuser=0&prompt=none HTTP/1.1" 307 Temporary Redirect
+INFO:     127.0.0.1:60238 - "GET / HTTP/1.1" 200 OK
+INFO:     127.0.0.1:60238 - "GET /.well-known/appspecific/com.chrome.devtools.json HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:60235 - "GET /favicon.svg HTTP/1.1" 200 OK
+INFO:     127.0.0.1:60235 - "GET /api/me HTTP/1.1" 200 OK
+INFO:     127.0.0.1:60235 - "GET /api/profile HTTP/1.1" 200 OK
+INFO:     127.0.0.1:60235 - "GET /api/learning HTTP/1.1" 200 OK
+INFO:     127.0.0.1:60235 - "GET /api/words?career=General HTTP/1.1" 200 OK
+INFO:     127.0.0.1:60235 - "GET /api/learning HTTP/1.1" 200 OK
+INFO:     127.0.0.1:60235 - "GET /api/notes HTTP/1.1" 200 OK
+INFO:     127.0.0.1:60235 - "GET /api/readings HTTP/1.1" 200 OK
+INFO:     127.0.0.1:60235 - "GET /api/units HTTP/1.1" 200 OK
+INFO:     127.0.0.1:60235 - "GET /api/score HTTP/1.1" 200 OK
+INFO:     127.0.0.1:60235 - "GET /api/inbox HTTP/1.1" 200 OK
+INFO:     127.0.0.1:60235 - "GET /api/careers HTTP/1.1" 200 OK
+INFO:     127.0.0.1:60235 - "GET /api/careers HTTP/1.1" 200 OK
+INFO:     127.0.0.1:60235 - "GET /dashboard HTTP/1.1" 200 OK
+INFO:     127.0.0.1:60235 - "GET /favicon.svg HTTP/1.1" 200 OK
+INFO:     127.0.0.1:60235 - "GET /.well-known/appspecific/com.chrome.devtools.json HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:60235 - "GET /api/admin/dashboard HTTP/1.1" 200 OK
+INFO:     127.0.0.1:60235 - "GET /api/admin/settings HTTP/1.1" 200 OK
+INFO:     127.0.0.1:60235 - "GET /api/admin/tokens HTTP/1.1" 200 OK
+INFO:     127.0.0.1:60235 - "POST /api/admin/tokens HTTP/1.1" 200 OK
+INFO:     127.0.0.1:60235 - "GET /api/admin/tokens HTTP/1.1" 200 OK
+🏷️  Setting tags for word_id=1: ['instantaneity', 'intuition', 'insight', 'decision']
+✓ Tags set successfully
+INFO:     127.0.0.1:60494 - "POST /api/words HTTP/1.1" 200 OK
+🏷️  Setting tags for word_id=2: ['training', 'education', 'profession', 'development']
+✓ Tags set successfully
+INFO:     127.0.0.1:60494 - "POST /api/words HTTP/1.1" 200 OK
+🏷️  Setting tags for word_id=3: ['artistic expression', 'statement', 'declaration', 'performance', 'gesture']
+✓ Tags set successfully
+INFO:     127.0.0.1:60494 - "POST /api/words HTTP/1.1" 200 OK
+🏷️  Setting tags for word_id=3: ['expression', 'artwork', 'emotion']
+✓ Tags set successfully
+INFO:     127.0.0.1:60494 - "POST /api/words HTTP/1.1" 200 OK
+🏷️  Setting tags for word_id=4: ['print', 'document', 'output', 'printer', 'software.']
+✓ Tags set successfully
+INFO:     127.0.0.1:60494 - "POST /api/words HTTP/1.1" 200 OK
+🏷️  Setting tags for word_id=5: ['traffic regulation', 'road management', 'urban planning']
+✓ Tags set successfully
+INFO:     127.0.0.1:60494 - "POST /api/words HTTP/1.1" 200 OK
+🏷️  Setting tags for word_id=6: ['exit', 'road', 'route', 'departure']
+✓ Tags set successfully
+INFO:     127.0.0.1:60494 - "POST /api/words HTTP/1.1" 200 OK
+🏷️  Setting tags for word_id=7: ['surprise', 'fall', 'stumble', 'failure', 'slip']
+✓ Tags set successfully
+INFO:     127.0.0.1:60494 - "POST /api/words HTTP/1.1" 200 OK
+🏷️  Setting tags for word_id=8: ['output', 'report', 'result', 'publication']
+✓ Tags set successfully
+INFO:     127.0.0.1:60494 - "POST /api/words HTTP/1.1" 200 OK
+🏷️  Setting tags for word_id=9: ['highway', 'road condition', 'excellent', 'traffic', 'route.']
+✓ Tags set successfully
+INFO:     127.0.0.1:60494 - "POST /api/words HTTP/1.1" 200 OK
+🏷️  Setting tags for word_id=10: ['medical aid', 'emergency assistance', 'volunteer work']
+✓ Tags set successfully
+INFO:     127.0.0.1:60494 - "POST /api/words HTTP/1.1" 200 OK
+🏷️  Setting tags for word_id=11: ['exception', 'regulation', 'standard', 'regulation', 'deviation']
+✓ Tags set successfully
+INFO:     127.0.0.1:60494 - "POST /api/words HTTP/1.1" 200 OK
+🏷️  Setting tags for word_id=12: ['sufficiency', 'quality', 'suitability', 'aptness']
+✓ Tags set successfully
+INFO:     127.0.0.1:60494 - "POST /api/words HTTP/1.1" 200 OK
+🏷️  Setting tags for word_id=13: ['aviation navigation', 'direction', 'orientation']
+✓ Tags set successfully
+INFO:     127.0.0.1:60494 - "POST /api/words HTTP/1.1" 200 OK
+🏷️  Setting tags for word_id=14: ['exclusion', 'decision', 'choose', 'reject', 'isolate']
+✓ Tags set successfully
+INFO:     127.0.0.1:60494 - "POST /api/words HTTP/1.1" 200 OK
+🏷️  Setting tags for word_id=15: ['exclusive', 'formal', 'formal language', 'strong emphasis']
+✓ Tags set successfully
+INFO:     127.0.0.1:60494 - "POST /api/words HTTP/1.1" 200 OK
+🏷️  Setting tags for word_id=16: ['language pronunciation', 'accent', 'dialectics']
+✓ Tags set successfully
+INFO:     127.0.0.1:60494 - "POST /api/words HTTP/1.1" 200 OK
+🏷️  Setting tags for word_id=17: ['exhibition', 'display', 'show', 'present', 'exhibit']
+✓ Tags set successfully
+INFO:     127.0.0.1:60494 - "POST /api/words HTTP/1.1" 200 OK
+🏷️  Setting tags for word_id=18: ['choosing', 'selecting', 'browsing', 'selecting']
+✓ Tags set successfully
+INFO:     127.0.0.1:60494 - "POST /api/words HTTP/1.1" 200 OK
+🏷️  Setting tags for word_id=19: ['selection', 'choice', 'sorting']
+✓ Tags set successfully
+INFO:     127.0.0.1:60494 - "POST /api/words HTTP/1.1" 200 OK
+🏷️  Setting tags for word_id=20: ['selection', 'vote', 'election', 'pick', 'choose']
+✓ Tags set successfully
+INFO:     127.0.0.1:60494 - "POST /api/words HTTP/1.1" 200 OK
+🏷️  Setting tags for word_id=21: ['author', 'writer', 'creator']
+✓ Tags set successfully
+INFO:     127.0.0.1:60494 - "POST /api/words HTTP/1.1" 200 OK
+🏷️  Setting tags for word_id=22: ['female author', 'writer', 'novelist']
+✓ Tags set successfully
+INFO:     127.0.0.1:60494 - "POST /api/words HTTP/1.1" 200 OK
+🏷️  Setting tags for word_id=23: ['outdoors', 'exterior', 'outside']
+✓ Tags set successfully
+INFO:     127.0.0.1:60494 - "POST /api/words HTTP/1.1" 200 OK
+🏷️  Setting tags for word_id=24: ['oven', 'kitchen appliance', 'cooking space']
+✓ Tags set successfully
+INFO:     127.0.0.1:60494 - "POST /api/words HTTP/1.1" 200 OK
+🏷️  Setting tags for word_id=25: ['cycling', 'handlebars', 'road']
+✓ Tags set successfully
+INFO:     127.0.0.1:60494 - "POST /api/words HTTP/1.1" 200 OK
+🏷️  Setting tags for word_id=26: ['bathtub', 'bathroom', 'shower', 'sink', 'water']
+✓ Tags set successfully
+INFO:     127.0.0.1:60494 - "POST /api/words HTTP/1.1" 200 OK
+🏷️  Setting tags for word_id=27: ['dance step', 'technique', 'movement', 'art form', 'performance.']
+✓ Tags set successfully
+INFO:     127.0.0.1:60494 - "POST /api/words HTTP/1.1" 200 OK
+🏷️  Setting tags for word_id=28: ['banking', 'atms', 'payment', 'finance']
+✓ Tags set successfully
+INFO:     127.0.0.1:60494 - "POST /api/words HTTP/1.1" 200 OK
+🏷️  Setting tags for word_id=29: ['bank card', 'debit card', 'payment method']
+✓ Tags set successfully
+INFO:     127.0.0.1:60494 - "POST /api/words HTTP/1.1" 200 OK
+🏷️  Setting tags for word_id=30: ['bank account number', 'financial information', 'identification code']
+✓ Tags set successfully
+INFO:     127.0.0.1:60494 - "POST /api/words HTTP/1.1" 200 OK
+🏷️  Setting tags for word_id=31: ['atm', 'cash machine', 'vending machine']
+✓ Tags set successfully
+INFO:     127.0.0.1:60494 - "POST /api/words HTTP/1.1" 200 OK
+🏷️  Setting tags for word_id=32: ['banking card', 'payment', 'credit card', 'debit card', 'identification']
+✓ Tags set successfully
+INFO:     127.0.0.1:60494 - "POST /api/words HTTP/1.1" 200 OK
+🏷️  Setting tags for word_id=33: ['pub', 'drinking establishment', 'social gathering place.']
+✓ Tags set successfully
+INFO:     127.0.0.1:60494 - "POST /api/words HTTP/1.1" 200 OK
+🏷️  Setting tags for word_id=34: ['cash', 'money', 'physical', 'payment']
+✓ Tags set successfully
+INFO:     127.0.0.1:60494 - "POST /api/words HTTP/1.1" 200 OK
+🏷️  Setting tags for word_id=35: ['beard', 'hairstyle', 'facial hair', 'grooming.']
+✓ Tags set successfully
+INFO:     127.0.0.1:60494 - "POST /api/words HTTP/1.1" 200 OK
+🏷️  Setting tags for word_id=36: ['battery', 'electricity', 'storage', 'power', 'device']
+✓ Tags set successfully
+INFO:     127.0.0.1:60494 - "POST /api/words HTTP/1.1" 200 OK
+🏷️  Setting tags for word_id=37: ['construction', 'building', 'architecture']
+✓ Tags set successfully
+INFO:     127.0.0.1:60494 - "POST /api/words HTTP/1.1" 200 OK
+🏷️  Setting tags for word_id=38: ['farmer', 'landowner', 'peasant']
+✓ Tags set successfully
+INFO:     127.0.0.1:60494 - "POST /api/words HTTP/1.1" 200 OK
+🏷️  Setting tags for word_id=39: ['agricultural', 'rural', 'farm', 'countryside', 'estate']
+✓ Tags set successfully
+INFO:     127.0.0.1:60494 - "POST /api/words HTTP/1.1" 200 OK
+INFO:     127.0.0.1:61217 - "GET / HTTP/1.1" 200 OK
+INFO:     127.0.0.1:61217 - "GET /favicon.svg HTTP/1.1" 200 OK
+INFO:     127.0.0.1:61219 - "GET /.well-known/appspecific/com.chrome.devtools.json HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:61217 - "GET /api/me HTTP/1.1" 200 OK
+INFO:     127.0.0.1:61217 - "GET /api/profile HTTP/1.1" 200 OK
+INFO:     127.0.0.1:61217 - "GET /api/learning HTTP/1.1" 200 OK
+INFO:     127.0.0.1:61217 - "GET /api/words?career=General HTTP/1.1" 200 OK
+INFO:     127.0.0.1:61217 - "GET /api/learning HTTP/1.1" 200 OK
+INFO:     127.0.0.1:61217 - "GET /api/notes HTTP/1.1" 200 OK
+INFO:     127.0.0.1:61217 - "GET /api/readings HTTP/1.1" 200 OK
+INFO:     127.0.0.1:61217 - "GET /api/units HTTP/1.1" 200 OK
+INFO:     127.0.0.1:61217 - "GET /api/score HTTP/1.1" 200 OK
+INFO:     127.0.0.1:61217 - "GET /api/inbox HTTP/1.1" 200 OK
+INFO:     127.0.0.1:61217 - "GET /api/careers HTTP/1.1" 200 OK
+INFO:     127.0.0.1:61217 - "GET /api/careers HTTP/1.1" 200 OK
+🏷️  Setting tags for word_id=40: ['attention', 'observation', 'notice', 'respect']
+✓ Tags set successfully
+INFO:     127.0.0.1:60494 - "POST /api/words HTTP/1.1" 200 OK
+INFO:     127.0.0.1:61217 - "PUT /api/profile HTTP/1.1" 200 OK
+INFO:     127.0.0.1:61217 - "GET /api/words?career=DevOps%20%2F%20SRE%20Engineer HTTP/1.1" 200 OK
+
+🎯 Generating sentences for word_id=2, career=DevOps / SRE Engineer, level=B1
+
+🎯 Generating sentences for word_id=1, career=DevOps / SRE Engineer, level=B1
+
+🎯 Generating sentences for word_id=6, career=DevOps / SRE Engineer, level=B1
+
+🎯 Generating sentences for word_id=4, career=DevOps / SRE Engineer, level=B1
+
+🎯 Generating sentences for word_id=3, career=DevOps / SRE Engineer, level=B1
+
+🎯 Generating sentences for word_id=5, career=DevOps / SRE Engineer, level=B1
+📡 Calling enrichment service: http://localhost:7000/enrich📡 Calling enrichment service: http://localhost:7000/enrich📡 Calling enrichment service: http://localhost:7000/enrich📡 Calling enrichment service: http://localhost:7000/enrich
+
+
+📤 Payload: {'word': 'die Ausfahrt', 'career': 'DevOps / SRE Engineer', 'level': 'B1'}📤 Payload: {'word': 'der Augenblick', 'career': 'DevOps / SRE Engineer', 'level': 'B1'}
+📤 Payload: {'word': 'ausbilden', 'career': 'DevOps / SRE Engineer', 'level': 'B1'}📡 Calling enrichment service: http://localhost:7000/enrich
+
+📡 Calling enrichment service: http://localhost:7000/enrich📤 Payload: {'word': 'ausdrucken', 'career': 'DevOps / SRE Engineer', 'level': 'B1'}
+
+
+
+📤 Payload: {'word': 'auseinander', 'career': 'DevOps / SRE Engineer', 'level': 'B1'}📤 Payload: {'word': 'der Ausdruck', 'career': 'DevOps / SRE Engineer', 'level': 'B1'}
+
+🏷️  Setting tags for word_id=41: ['bureaucracy', 'female civil servant', 'occupation', 'administrative worker', 'official.']
+✓ Tags set successfully
+INFO:     127.0.0.1:60494 - "POST /api/words HTTP/1.1" 200 OK
+🏷️  Setting tags for word_id=42: ['request', 'submit', 'propose']
+✓ Tags set successfully
+INFO:     127.0.0.1:60494 - "POST /api/words HTTP/1.1" 200 OK
+🏷️  Setting tags for word_id=43: ['need', 'requirement', 'necessity', 'demand']
+✓ Tags set successfully
+INFO:     127.0.0.1:60494 - "POST /api/words HTTP/1.1" 200 OK
+🏷️  Setting tags for word_id=44: ['meaning', 'semantics', 'concept', 'significance']
+✓ Tags set successfully
+INFO:     127.0.0.1:60494 - "POST /api/words HTTP/1.1" 200 OK
+🏷️  Setting tags for word_id=45: ['attending', 'serving', 'managing', 'working', 'administrative']
+✓ Tags set successfully
+INFO:     127.0.0.1:60494 - "POST /api/words HTTP/1.1" 200 OK
+🏷️  Setting tags for word_id=46: ['manual', 'instructions', 'guide']
+✓ Tags set successfully
+INFO:     127.0.0.1:60494 - "POST /api/words HTTP/1.1" 200 OK
+🏷️  Setting tags for word_id=47: ['condition', 'requirement', 'prerequisite', 'specification', 'conditionality.']
+✓ Tags set successfully
+INFO:     127.0.0.1:60494 - "POST /api/words HTTP/1.1" 200 OK
+🏷️  Setting tags for word_id=48: ['influence', 'control', 'manipulate', 'persuasion', 'psychology']
+✓ Tags set successfully
+INFO:     127.0.0.1:60494 - "POST /api/words HTTP/1.1" 200 OK
+🏷️  Setting tags for word_id=49: ['mood', 'state', 'condition', 'feeling', 'emotion.']
+✓ Tags set successfully
+INFO:     127.0.0.1:60494 - "POST /api/words HTTP/1.1" 200 OK
+📥 Response status: 200
+✅ Parsed response: {'word': 'auseinander', 'source_lang': 'de', 'level': 'B1', 'meaning': '[1] so, dass mehrere Dinge räumlich getrennt sind', 'audio_url': 'https://www.dwds.de/audio/004/auseinander.mp3', 'word_url': 'https://www.dwds.de/wb/auseinander', 'meanings': [{'language': 'en', 'meaning': 'apart'}, {'language': 'de', 'meaning': '[1] so, dass mehrere Dinge räumlich getrennt sind'}], 'examples': [{'language': 'de', 'example': 'die zwei schwatzhaften Schüler wurdenauseinandergesetzt', 'translation': '', 'tags': ['separation', 'disassembly', 'differentiation', 'dissolution', 'apart']}, {'language': 'de', 'example': 'die Täler liegen weitauseinander', 'translation': '', 'tags': ['separation', 'disassembly', 'differentiation', 'dissolution', 'apart']}, {'language': 'de', 'example': '»gar nicht« schreibt manauseinander', 'translation': '', 'tags': ['separation', 'disassembly', 'differentiation', 'dissolution', 'apart']}, {'language': 'de', 'example': 'wir sind schon langeauseinander(= nicht mehr befreundet)', 'translation': '', 'tags': ['separation', 'disassembly', 'differentiation', 'dissolution', 'apart']}], 'tags': ['separation', 'disassembly', 'differentiation', 'dissolution', 'apart']}
+📌 Found 4 examples in response
+   ✗ Example 1: Missing example or translation
+   ✗ Example 2: Missing example or translation
+   ✗ Example 3: Missing example or translation
+   ✗ Example 4: Missing example or translation
+⚠ No valid examples found in enrichment response
+⚠ Enrichment service failed, will fall back to AI provider
+📡 Enrichment service unavailable, falling back to AI provider
+📥 Response status: 200
+✅ Parsed response: {'word': 'ausbilden', 'source_lang': 'de', 'level': 'B1', 'meaning': '[1] jemandem bestimmte Fertigkeiten und/oder Kenntnisse/Verhaltensweisen beibringen', 'audio_url': 'https://www.dwds.de/audio/007/ausbilden.mp3', 'word_url': 'https://www.dwds.de/wb/ausbilden', 'meanings': [{'language': 'en', 'meaning': 'to train'}, {'language': 'de', 'meaning': '[1] jemandem bestimmte Fertigkeiten und/oder Kenntnisse/Verhaltensweisen beibringen'}], 'examples': [{'language': 'de', 'example': 'Lehrlinge, Praktikanten, Fachschülerausbilden', 'translation': '', 'tags': ['training', 'education', 'development', 'instruction', 'apprenticeship']}, {'language': 'de', 'example': 'Rekrutenausbilden', 'translation': '', 'tags': ['training', 'education', 'development', 'instruction', 'apprenticeship']}, {'language': 'de', 'example': 'es müssen mehr Facharbeiter, Lehrer, Ärzteausgebildet(= herangebildet)werden', 'translation': '', 'tags': ['training', 'education', 'development', 'instruction', 'apprenticeship']}], 'tags': ['training', 'education', 'development', 'instruction', 'apprenticeship']}
+📌 Found 3 examples in response
+   ✗ Example 1: Missing example or translation
+   ✗ Example 2: Missing example or translation
+   ✗ Example 3: Missing example or translation
+⚠ No valid examples found in enrichment response
+⚠ Enrichment service failed, will fall back to AI provider
+📡 Enrichment service unavailable, falling back to AI provider
+INFO:     127.0.0.1:61242 - "POST /api/words/5/generate HTTP/1.1" 200 OK
+
+🎯 Generating sentences for word_id=7, career=DevOps / SRE Engineer, level=B1
+📡 Calling enrichment service: http://localhost:7000/enrich
+📤 Payload: {'word': 'ausfallen', 'career': 'DevOps / SRE Engineer', 'level': 'B1'}
+INFO:     127.0.0.1:61219 - "POST /api/words/2/generate HTTP/1.1" 200 OK
+
+🎯 Generating sentences for word_id=8, career=DevOps / SRE Engineer, level=B1
+📡 Calling enrichment service: http://localhost:7000/enrich
+📤 Payload: {'word': 'die Ausgabe', 'career': 'DevOps / SRE Engineer', 'level': 'B1'}
+🏷️  Setting tags for word_id=50: ['rescued', 'liberated', 'freed', 'released', 'cleared']
+✓ Tags set successfully
+INFO:     127.0.0.1:61528 - "POST /api/words HTTP/1.1" 200 OK
+🏷️  Setting tags for word_id=51: ['satisfaction', 'adjective', 'contentment', 'pleasure']
+✓ Tags set successfully
+INFO:     127.0.0.1:61528 - "POST /api/words HTTP/1.1" 200 OK
+🏷️  Setting tags for word_id=52: ['encounter', 'meeting', 'socializing', 'greeting']
+✓ Tags set successfully
+INFO:     127.0.0.1:61528 - "POST /api/words HTTP/1.1" 200 OK
+🏷️  Setting tags for word_id=53: ['enthusiasm', 'adjective', 'emotions', 'excitement']
+✓ Tags set successfully
+INFO:     127.0.0.1:61528 - "POST /api/words HTTP/1.1" 200 OK
+🏷️  Setting tags for word_id=54: ['start', 'beginning', 'introduction', 'start-up', 'commencement']
+✓ Tags set successfully
+INFO:     127.0.0.1:61528 - "POST /api/words HTTP/1.1" 200 OK
+🏷️  Setting tags for word_id=55: ['traveling', 'accompany', 'escort', 'accompanying']
+✓ Tags set successfully
+INFO:     127.0.0.1:61528 - "POST /api/words HTTP/1.1" 200 OK
+🏷️  Setting tags for word_id=56: ['limited', 'restricted', 'confined', 'constrained', 'restricted']
+✓ Tags set successfully
+INFO:     127.0.0.1:61528 - "POST /api/words HTTP/1.1" 200 OK
+🏷️  Setting tags for word_id=57: ['argumentation', 'justification', 'reasoning', 'proof', 'evidence']
+✓ Tags set successfully
+INFO:     127.0.0.1:61528 - "POST /api/words HTTP/1.1" 200 OK
+🏷️  Setting tags for word_id=58: ['greeting', 'welcome', 'hostess', 'receive']
+✓ Tags set successfully
+INFO:     127.0.0.1:61528 - "POST /api/words HTTP/1.1" 200 OK
+🏷️  Setting tags for word_id=59: ['hold', 'possess', 'retain', 'keep', 'custody']
+✓ Tags set successfully
+INFO:     127.0.0.1:61528 - "POST /api/words HTTP/1.1" 200 OK
+🏷️  Setting tags for word_id=60: ['treatment', 'negotiation', 'manage', 'conduct', 'discussion']
+✓ Tags set successfully
+INFO:     127.0.0.1:61528 - "POST /api/words HTTP/1.1" 200 OK
+🏷️  Setting tags for word_id=61: ['argumentation', 'assertion', 'claim', 'affirmation', 'persuasion']
+✓ Tags set successfully
+INFO:     127.0.0.1:61528 - "POST /api/words HTTP/1.1" 200 OK
+🏷️  Setting tags for word_id=62: ['physical disability', 'obstacle', 'hinder', 'limitation', 'disablement']
+✓ Tags set successfully
+INFO:     127.0.0.1:61528 - "POST /api/words HTTP/1.1" 200 OK
+🏷️  Setting tags for word_id=63: ['government', 'authority', 'administration', 'bureaucracy', 'office.']
+✓ Tags set successfully
+INFO:     127.0.0.1:61528 - "POST /api/words HTTP/1.1" 200 OK
+🏷️  Setting tags for word_id=64: ['nearness', 'proximity', 'almost']
+✓ Tags set successfully
+INFO:     127.0.0.1:61828 - "POST /api/words HTTP/1.1" 200 OK
+🏷️  Setting tags for word_id=65: ['almost', 'proximity', 'nearness', 'near', 'extent']
+✓ Tags set successfully
+INFO:     127.0.0.1:61828 - "POST /api/words HTTP/1.1" 200 OK
+📥 Response status: 200
+✅ Parsed response: {'word': 'ausfallen', 'source_lang': 'de', 'level': 'B1', 'meaning': '[1] nicht mehr zur Verfügung stehen[1a] Personen[1b] Maschinen oder sonstiges', 'audio_url': 'https://www.dwds.de/audio/004/ausfallen.mp3', 'word_url': 'https://www.dwds.de/wb/ausfallen', 'meanings': [{'language': 'en', 'meaning': 'To fail, to drop out, to be cancelled.'}, {'language': 'de', 'meaning': '[1] nicht mehr zur Verfügung stehen[1a] Personen[1b] Maschinen oder sonstiges'}], 'examples': [{'language': 'de', 'example': 'im Alterfallendie Zähneaus', 'translation': '', 'tags': ['faulty', 'defective', 'irregular', 'nonconformity', 'substandard']}, {'language': 'de', 'example': 'die Haarefallenmiraus(= gehen stark aus)', 'translation': '', 'tags': ['faulty', 'defective', 'irregular', 'nonconformity', 'substandard']}, {'language': 'de', 'example': 'Samenkörnerfallenaus', 'translation': '', 'tags': ['faulty', 'defective', 'irregular', 'nonconformity', 'substandard']}], 'tags': ['faulty', 'defective', 'irregular', 'nonconformity', 'substandard']}
+📌 Found 3 examples in response
+   ✗ Example 1: Missing example or translation
+   ✗ Example 2: Missing example or translation
+   ✗ Example 3: Missing example or translation
+⚠ No valid examples found in enrichment response
+⚠ Enrichment service failed, will fall back to AI provider
+📡 Enrichment service unavailable, falling back to AI provider
+INFO:     127.0.0.1:61242 - "POST /api/words/7/generate HTTP/1.1" 200 OK
+
+🎯 Generating sentences for word_id=9, career=DevOps / SRE Engineer, level=B1
+📡 Calling enrichment service: http://localhost:7000/enrich
+📤 Payload: {'word': 'ausgezeichnet', 'career': 'DevOps / SRE Engineer', 'level': 'B1'}
+🏷️  Setting tags for word_id=66: ['contribution', 'economics', 'politics', 'contribution', 'donation']
+✓ Tags set successfully
+INFO:     127.0.0.1:61887 - "POST /api/words HTTP/1.1" 200 OK
+🏷️  Setting tags for word_id=67: ['bite', 'attack', 'verb', 'aggression', 'fight.']
+✓ Tags set successfully
+INFO:     127.0.0.1:61887 - "POST /api/words HTTP/1.1" 200 OK
+🏷️  Setting tags for word_id=68: ['public announcement', 'declaration', 'notification', 'statement', 'proclamation.']
+✓ Tags set successfully
+INFO:     127.0.0.1:61887 - "POST /api/words HTTP/1.1" 200 OK
+🏷️  Setting tags for word_id=69: ['proof', 'burden', 'weight', 'liability']
+✓ Tags set successfully
+INFO:     127.0.0.1:61887 - "POST /api/words HTTP/1.1" 200 OK
+🏷️  Setting tags for word_id=70: ['insult', 'verb', 'language', 'criticism']
+✓ Tags set successfully
+INFO:     127.0.0.1:61887 - "POST /api/words HTTP/1.1" 200 OK
+🏷️  Setting tags for word_id=71: ['be aware', 'notice', 'observe', 'verb']
+✓ Tags set successfully
+INFO:     127.0.0.1:61887 - "POST /api/words HTTP/1.1" 200 OK
+🏷️  Setting tags for word_id=72: ['effort', 'work', 'perseverance', 'dedication', 'striving']
+✓ Tags set successfully
+INFO:     127.0.0.1:61887 - "POST /api/words HTTP/1.1" 200 OK
+🏷️  Setting tags for word_id=73: ['fuel', 'gasoline', 'liquid', 'transportation', 'energy.']
+✓ Tags set successfully
+INFO:     127.0.0.1:61887 - "POST /api/words HTTP/1.1" 200 OK
+🏷️  Setting tags for word_id=74: ['need', 'requirement', 'necessity', 'verb', 'necessity']
+✓ Tags set successfully
+INFO:     127.0.0.1:61887 - "POST /api/words HTTP/1.1" 200 OK
+🏷️  Setting tags for word_id=75: ['observation', 'behavior', 'surveillance', 'study', 'watch.']
+✓ Tags set successfully
+INFO:     127.0.0.1:61887 - "POST /api/words HTTP/1.1" 200 OK
+🏷️  Setting tags for word_id=76: ['counseling', 'guidance', 'advice']
+✓ Tags set successfully
+INFO:     127.0.0.1:61887 - "POST /api/words HTTP/1.1" 200 OK
+🏷️  Setting tags for word_id=77: ['accounting', 'calculation', 'estimation', 'management', 'mathematics.']
+✓ Tags set successfully
+INFO:     127.0.0.1:61887 - "POST /api/words HTTP/1.1" 200 OK
+🏷️  Setting tags for word_id=78: ['field', 'area', 'scope', 'domain']
+✓ Tags set successfully
+INFO:     127.0.0.1:61887 - "POST /api/words HTTP/1.1" 200 OK
+❌ Enrichment service failed: HTTPConnectionPool(host='localhost', port=7000): Read timed out. (read timeout=120)❌ Enrichment service failed: HTTPConnectionPool(host='localhost', port=7000): Read timed out. (read timeout=120)❌ Enrichment service failed: HTTPConnectionPool(host='localhost', port=7000): Read timed out. (read timeout=120)❌ Enrichment service failed: HTTPConnectionPool(host='localhost', port=7000): Read timed out. (read timeout=120)
+
+
+
+⚠ Enrichment service failed, will fall back to AI provider⚠ Enrichment service failed, will fall back to AI provider
+
+📡 Enrichment service unavailable, falling back to AI provider⚠ Enrichment service failed, will fall back to AI provider
+
+⚠ Enrichment service failed, will fall back to AI provider📡 Enrichment service unavailable, falling back to AI provider📡 Enrichment service unavailable, falling back to AI provider
+
+📡 Enrichment service unavailable, falling back to AI provider
+
+INFO:     127.0.0.1:61240 - "POST /api/words/4/generate HTTP/1.1" 200 OK
+
+🎯 Generating sentences for word_id=10, career=DevOps / SRE Engineer, level=B1
+📡 Calling enrichment service: http://localhost:7000/enrich
+📤 Payload: {'word': 'die Aushilfe', 'career': 'DevOps / SRE Engineer', 'level': 'B1'}
+INFO:     127.0.0.1:61243 - "POST /api/words/6/generate HTTP/1.1" 200 OK
+INFO:     127.0.0.1:61243 - "GET /api/events HTTP/1.1" 200 OK
+INFO:     127.0.0.1:61217 - "POST /api/words/1/generate HTTP/1.1" 200 OK
+INFO:     127.0.0.1:61237 - "POST /api/words/3/generate HTTP/1.1" 200 OK
+🏷️  Setting tags for word_id=79: ['ready', 'prepared', 'readiness', 'willingness', 'readiness', 'anticipation']
+✓ Tags set successfully
+INFO:     127.0.0.1:62228 - "POST /api/words HTTP/1.1" 200 OK
+🏷️  Setting tags for word_id=80: ['preparation', 'already', 'completion', 'anticipation']
+✓ Tags set successfully
+INFO:     127.0.0.1:62228 - "POST /api/words HTTP/1.1" 200 OK
+🏷️  Setting tags for word_id=81: ['report', 'document', 'newspaper', 'article', 'reportage']
+✓ Tags set successfully
+INFO:     127.0.0.1:62228 - "POST /api/words HTTP/1.1" 200 OK
+🏷️  Setting tags for word_id=82: ['professional', 'career', 'work', 'occupation', 'job.']
+✓ Tags set successfully
+INFO:     127.0.0.1:62228 - "POST /api/words HTTP/1.1" 200 OK
+🏷️  Setting tags for word_id=83: ['career', 'occupation', 'professional']
+✓ Tags set successfully
+INFO:     127.0.0.1:62228 - "POST /api/words HTTP/1.1" 200 OK
+🏷️  Setting tags for word_id=84: ['calm', 'soothe', 'comfort', 'reassure', 'pacify']
+✓ Tags set successfully
+INFO:     127.0.0.1:62228 - "POST /api/words HTTP/1.1" 200 OK
+❌ Enrichment service failed: HTTPConnectionPool(host='localhost', port=7000): Read timed out. (read timeout=120)
+⚠ Enrichment service failed, will fall back to AI provider
+📡 Enrichment service unavailable, falling back to AI provider
+🏷️  Setting tags for word_id=85: ['make', 'decide', 'resolve', 'conclude', 'formalize']
+✓ Tags set successfully
+INFO:     127.0.0.1:62228 - "POST /api/words HTTP/1.1" 200 OK
+INFO:     127.0.0.1:61219 - "POST /api/words/8/generate HTTP/1.1" 200 OK
+🏷️  Setting tags for word_id=86: ['description', 'definition', 'documentation', 'explanation', 'narrative.']
+✓ Tags set successfully
+INFO:     127.0.0.1:62228 - "POST /api/words HTTP/1.1" 200 OK
+🏷️  Setting tags for word_id=87: ['limit', 'restrict', 'control', 'regulation', 'governance']
+✓ Tags set successfully
+INFO:     127.0.0.1:62228 - "POST /api/words HTTP/1.1" 200 OK
+🏷️  Setting tags for word_id=88: ['damage', 'injury', 'verb', 'harm']
+✓ Tags set successfully
+INFO:     127.0.0.1:62228 - "POST /api/words HTTP/1.1" 200 OK
+🏷️  Setting tags for word_id=89: ['work', 'employment', 'occupation']
+✓ Tags set successfully
+INFO:     127.0.0.1:62228 - "POST /api/words HTTP/1.1" 200 OK
+🏷️  Setting tags for word_id=90: ['employment', 'economy', 'labor market', 'work.']
+✓ Tags set successfully
+INFO:     127.0.0.1:62228 - "POST /api/words HTTP/1.1" 200 OK
+INFO:     127.0.0.1:62464 - "PUT /api/notes/1 HTTP/1.1" 200 OK
+🏷️  Setting tags for word_id=91: ['occupy', 'seize', 'capture', 'take']
+✓ Tags set successfully
+INFO:     127.0.0.1:62228 - "POST /api/words HTTP/1.1" 200 OK
+🏷️  Setting tags for word_id=92: ['special', 'unique', 'exceptional', 'extraordinary', 'outstanding.']
+✓ Tags set successfully
+INFO:     127.0.0.1:62518 - "POST /api/words HTTP/1.1" 200 OK
+INFO:     127.0.0.1:62526 - "PUT /api/notes/2 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:62526 - "PUT /api/notes/3 HTTP/1.1" 200 OK
+🏷️  Setting tags for word_id=93: ['acquire', 'order', 'manage', 'procure']
+✓ Tags set successfully
+INFO:     127.0.0.1:62518 - "POST /api/words HTTP/1.1" 200 OK
+INFO:     127.0.0.1:62526 - "PUT /api/notes/4 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:62526 - "PUT /api/notes/5 HTTP/1.1" 200 OK
+📍 Current unit position: 1
+📋 Looking for unit with position > 1
+🔓 Found next unit: 2 (position 2)
+✅ Unit 1 marked complete, Unit 2 auto-unlocked for user 1
+INFO:     127.0.0.1:62526 - "POST /api/units/1/complete HTTP/1.1" 200 OK
+INFO:     127.0.0.1:62526 - "GET /api/units HTTP/1.1" 200 OK
+🏷️  Setting tags for word_id=94: ['discuss', 'talk', 'negotiate', 'debate']
+✓ Tags set successfully
+INFO:     127.0.0.1:62518 - "POST /api/words HTTP/1.1" 200 OK
+🏷️  Setting tags for word_id=95: ['meeting', 'discussion', 'conference']
+✓ Tags set successfully
+INFO:     127.0.0.1:62604 - "POST /api/words HTTP/1.1" 200 OK
+🏷️  Setting tags for word_id=96: ['health improvement', 'medical recovery', 'rehabilitation process']
+✓ Tags set successfully
+INFO:     127.0.0.1:62604 - "POST /api/words HTTP/1.1" 200 OK
+🏷️  Setting tags for word_id=97: ['adjective', 'determiner', 'negation', 'certainty', 'future']
+✓ Tags set successfully
+INFO:     127.0.0.1:62604 - "POST /api/words HTTP/1.1" 200 OK
+❌ Enrichment service failed: HTTPConnectionPool(host='localhost', port=7000): Read timed out. (read timeout=120)
+⚠ Enrichment service failed, will fall back to AI provider
+📡 Enrichment service unavailable, falling back to AI provider
+INFO:     127.0.0.1:61242 - "POST /api/words/9/generate HTTP/1.1" 200 OK
+🏷️  Setting tags for word_id=98: ['punishment', 'law', 'verb', 'crime', 'penalty.']
+✓ Tags set successfully
+INFO:     127.0.0.1:62707 - "POST /api/words HTTP/1.1" 200 OK
+🏷️  Setting tags for word_id=99: ['verification', 'confirmation', 'confirmation letter', 'credentials', 'approval.']
+✓ Tags set successfully
+INFO:     127.0.0.1:62707 - "POST /api/words HTTP/1.1" 200 OK
+🏷️  Setting tags for word_id=100: ['participation', 'collaboration', 'involvement', 'engagement', 'business']
+✓ Tags set successfully
+INFO:     127.0.0.1:62707 - "POST /api/words HTTP/1.1" 200 OK
+❌ Enrichment service failed: HTTPConnectionPool(host='localhost', port=7000): Read timed out. (read timeout=120)
+⚠ Enrichment service failed, will fall back to AI provider
+📡 Enrichment service unavailable, falling back to AI provider
+INFO:     127.0.0.1:61240 - "POST /api/words/10/generate HTTP/1.1" 200 OK
