@@ -1,3 +1,10 @@
+## [1.2.1](https://github.com/millad90s/addeustch/compare/v1.2.0...v1.2.1) (2026-06-29)
+
+
+### Bug Fixes
+
+* test build ([ca4adee](https://github.com/millad90s/addeustch/commit/ca4adee51da87523710894e1d39e13aa42bb110c))
+
 # [1.2.0](https://github.com/millad90s/addeustch/compare/v1.1.0...v1.2.0) (2026-06-29)
 
 
