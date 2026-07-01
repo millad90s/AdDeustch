@@ -1,3 +1,10 @@
+## [1.2.2](https://github.com/millad90s/addeustch/compare/v1.2.1...v1.2.2) (2026-06-30)
+
+
+### Bug Fixes
+
+* fix units logic ([7d71782](https://github.com/millad90s/addeustch/commit/7d717825a881359a7f3d2f368ead13292d2a1ef7))
+
 ## [1.2.1](https://github.com/millad90s/addeustch/compare/v1.2.0...v1.2.1) (2026-06-29)
 
 
