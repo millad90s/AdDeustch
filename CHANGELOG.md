@@ -1,3 +1,11 @@
+# [1.3.0](https://github.com/millad90s/addeustch/compare/v1.2.2...v1.3.0) (2026-07-01)
+
+
+### Features
+
+* read from DB for words ([7f5fcf5](https://github.com/millad90s/addeustch/commit/7f5fcf5642ecd4f5138353b62b6dd96c3446dfb2))
+* use database sentences only, remove all generation ([8448154](https://github.com/millad90s/addeustch/commit/8448154ff333a45fba98c22db36f6737e6f685ca))
+
 ## [1.2.2](https://github.com/millad90s/addeustch/compare/v1.2.1...v1.2.2) (2026-06-30)
 
 
