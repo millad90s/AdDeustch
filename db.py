@@ -1131,6 +1131,7 @@ def _unit_word_map(conn):
 def list_units(level=None, user_id=None):
     """Units ordered by (level, position, id). Each carries its word ids; with a
     user_id, also a `paid` flag (has the user unlocked it)."""
+    print(f"🔍 [DEBUG] list_units() called - Reading from database only (NO external endpoint calls)")
     with connect() as conn:
         sql = "SELECT * FROM units"
         args = ()
@@ -1157,6 +1158,7 @@ def list_units(level=None, user_id=None):
                 d["paid"] = (r["position"] == 1) or (r["id"] in paid)
                 d["score_earned"] = r["id"] in scored
             out.append(d)
+        print(f"✅ [DEBUG] list_units() completed - Read {len(out)} units from database only (NO external endpoint calls)")
         return out
 
 
