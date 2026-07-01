@@ -861,7 +861,16 @@ function aiLoadingHTML(msg) {
 
 // -------- deck helpers --------
 const careerStr = () => (PROFILE?.career || 'General').trim();
-async function loadDeck() { DECK = await api('/api/words?career=' + encodeURIComponent(careerStr())); }
+async function loadDeck() {
+  console.log('📚 loadDeck() - Fetching words from API...');
+  DECK = await api('/api/words?career=' + encodeURIComponent(careerStr()));
+  console.log(`✅ loadDeck() - Loaded ${DECK.length} words`);
+  const wordsWithSentences = DECK.filter(w => w.sentences && w.sentences.length);
+  console.log(`📝 ${wordsWithSentences.length} words have sentences in API response`);
+  if (DECK.length > 0) {
+    console.log(`📖 First word: "${DECK[0].word}" - sentences:`, DECK[0].sentences);
+  }
+}
 function sentencesFor(w) { const c = careerStr(); const cs = w.sentences.filter(s => s.career === c); return cs.length ? cs : w.sentences; }
 // ---- sentences from database only (no generation) ----
 // All sentences come from the database; no AI generation
@@ -880,8 +889,16 @@ function careerCats() {
 }
 function studyDeck() {
   const lvl = (PROFILE?.level || 'B1');
-  return DECK.filter(w => w.level === lvl && w.sentences.length)
-             .sort((a, b) => a.id - b.id);
+  const filtered = DECK.filter(w => w.level === lvl && w.sentences.length);
+  console.log(`🎯 studyDeck() - Level: ${lvl}, Total DECK: ${DECK.length}, Filtered: ${filtered.length}`);
+  if (DECK.length > 0 && filtered.length === 0) {
+    console.log(`⚠️  No words match the filter! Checking first 3 words:`);
+    for (let i = 0; i < Math.min(3, DECK.length); i++) {
+      const w = DECK[i];
+      console.log(`   Word ${i}: "${w.word}" - level: ${w.level} (need: ${lvl}), sentences: ${w.sentences?.length || 0}`);
+    }
+  }
+  return filtered.sort((a, b) => a.id - b.id);
 }
 const goal = () => 10;
 const learnedSet = () => new Set((LEARN.learned || []).map(Number));
@@ -891,7 +908,14 @@ function highlight(sentence, word) {
   const core = word.replace(/^(der|die|das)\s+/i, '').trim().replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
   try { return sentence.replace(new RegExp('(' + core + ')', 'i'), '<mark>$1</mark>'); } catch { return sentence; }
 }
-const randSentence = (w) => { const ss = sentencesFor(w); return ss[Math.floor(Math.random() * ss.length)]; };
+const randSentence = (w) => {
+  const ss = sentencesFor(w);
+  if (!ss || ss.length === 0) {
+    console.error('⚠️ Word has no sentences:', w.word, 'id:', w.id);
+    return null;
+  }
+  return ss[Math.floor(Math.random() * ss.length)];
+};
 // Small dictionary-metadata line (POS · article · lemma).
 function wordMeta(w) {
   const bits = [];
@@ -1080,8 +1104,12 @@ function renderLearn() {
 }
 function renderStudy() {
   const w = lesson[studyIdx];
-  if (!w || !studySentence) {   // transient (still preparing) — never crash on missing data
-    $('#learn-area').innerHTML = `<div class="empty"><div class="big">✨</div>Loading…</div>`;
+  if (!w) {
+    $('#learn-area').innerHTML = `<div class="empty"><div class="big">⚠️</div>No words to study</div>`;
+    return;
+  }
+  if (!studySentence) {
+    $('#learn-area').innerHTML = `<div class="empty"><div class="big">⚠️</div>Word "<b>${escapeHtml(w.word)}</b>" has no example sentences in database.<p style="margin-top:10px;font-size:.9rem">Add sentences for this word to study it.</p></div>`;
     return;
   }
   const last = studyIdx === lesson.length - 1;
