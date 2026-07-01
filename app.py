@@ -1,3 +1,4 @@
+
 """FastAPI backend for the German DevOps flashcard app.
 
 Words and sentences are shared by everyone. Spaced-repetition scheduling runs
@@ -832,8 +833,9 @@ def _call_enrichment_service(word: str, career: str, level: str) -> tuple[list[d
             "level": level
         }
 
-        print(f"📡 Calling enrichment service: {ENRICHMENT_ENDPOINT}/enrich")
-        print(f"📤 Payload: {payload}")
+        print(f"📡 [ENRICHMENT] Calling enrichment service: {ENRICHMENT_ENDPOINT}/enrich")
+        print(f"📤 [ENRICHMENT] Payload: {payload}")
+        print(f"✅ [ENRICHMENT] This call is for WORD sentences/enrichment, NOT for units")
 
         response = requests.post(
             f"{ENRICHMENT_ENDPOINT}/enrich",
@@ -903,89 +905,9 @@ def _call_enrichment_service(word: str, career: str, level: str) -> tuple[list[d
 
 @app.post("/api/words/{word_id}/generate")
 def api_generate_sentences(word_id: int, body: GenerateIn, request: Request):
-    """Generate career-specific example sentences for a word via the AI provider
-    and store them (shared, tagged with the career). Login required. Cached so the
-    AI is called only once per (word, career); a cached hit costs no tokens. The
-    user is charged TOKEN_COST_GENERATE once per (word, career)."""
-    user = require_user(request)
-    uid = user["id"]
-    words = {w["id"]: w for w in db.list_words()}
-    if word_id not in words:
-        db.log_event("generate", "error", "word not found", uid, word_id, body.career)
-        raise HTTPException(404, "word not found")
-    cached = db.career_sentence_count(word_id, body.career) > 0
-    # Charge the user once per (word, career) — whether the sentences are generated
-    # now or already in the database — but never twice for the same one.
-    charge_needed = not db.has_charged(uid, word_id, body.career)
-    if charge_needed and db.get_tokens(uid) < TOKEN_COST_GENERATE:
-        db.log_event("generate", "error", "out of tokens", uid, word_id, body.career)
-        raise HTTPException(402, "You are out of tokens.")
-
-    inserted = []
-    if not cached:
-        with _get_gen_lock(word_id, body.career):
-            # Re-check inside the lock — another request may have just finished
-            if db.career_sentence_count(word_id, body.career) == 0:
-                # Try enrichment service first
-                print(f"\n🎯 Generating sentences for word_id={word_id}, career={body.career}, level={body.level}")
-                enrichment_result = _call_enrichment_service(words[word_id]["word"], body.career, body.level)
-                pairs = None
-                metadata = {}
-
-                if enrichment_result:
-                    print(f"✓ Enrichment service returned data")
-                    sentences_with_tags, metadata = enrichment_result
-                    print(f"   Got {len(sentences_with_tags)} sentences with tags")
-
-                    # Update word with enriched metadata
-                    if metadata.get("audio_url") or metadata.get("word_url"):
-                        print(f"   Updating word metadata...")
-                        with db.connect() as conn:
-                            if metadata.get("audio_url"):
-                                conn.execute("UPDATE words SET audio_url = ? WHERE id = ?", (metadata["audio_url"], word_id))
-                                print(f"     ✓ audio_url updated")
-                            if metadata.get("word_url"):
-                                conn.execute("UPDATE words SET word_url = ? WHERE id = ?", (metadata["word_url"], word_id))
-                                print(f"     ✓ word_url updated")
-
-                    if metadata.get("tags"):
-                        print(f"   Setting word tags: {metadata['tags']}")
-                        db.set_tags(word_id, metadata["tags"])
-
-                    # Add sentences with their tags
-                    print(f"   Adding sentences with tags...")
-                    inserted = db.add_career_sentences_with_tags(word_id, body.career, sentences_with_tags)
-                    print(f"     ✓ {len(inserted)} sentences inserted")
-                    pairs = None
-                else:
-                    print(f"⚠ Enrichment service failed, will fall back to AI provider")
-
-                # Fall back to built-in AI provider if enrichment failed
-                if not inserted:
-                    print(f"📡 Enrichment service unavailable, falling back to AI provider")
-                    provider = get_ai()
-                    if not provider.available():
-                        db.log_event("generate", "error", f"AI not available ({provider.name})", uid, word_id, body.career)
-                        raise HTTPException(503, "AI sentence generation is not configured on this server.")
-                    pairs = provider.generate_sentences(words[word_id]["word"], body.career, body.level, body.n)
-
-                    if not pairs:
-                        db.log_event("generate", "error", "No sentences generated from any provider", uid, word_id, body.career)
-                        raise HTTPException(502, "Could not generate sentences from any provider.")
-
-                    inserted = db.add_career_sentences(word_id, body.career, pairs)
-            cached = True  # sentences now exist (either just generated or by the concurrent winner)
-
-    tokens = user.get("tokens")
-    if charge_needed:
-        tokens = db.spend_tokens(uid, TOKEN_COST_GENERATE)
-        if tokens is None:  # lost a race for the last tokens
-            tokens = db.get_tokens(uid)
-        db.record_charge(uid, word_id, body.career)
-    db.log_event("generate", "cached" if cached else "generated",
-                 f"{len(inserted)} sentence(s)", uid, word_id, body.career)
-    return {"created": len(inserted), "cached": cached, "charged": charge_needed,
-            "sentences": inserted, "tokens": tokens}
+    print(f"❌ [DEBUG] /api/words/{word_id}/generate called but this endpoint is disabled")
+    print("✅ [DEBUG] All sentences come from database only - no generation needed")
+    raise HTTPException(410, "Sentence generation is no longer supported. All examples come from the database.")
 
 
 # ---- admin-only writes (words are curated by admins, not users) ----
@@ -1368,9 +1290,12 @@ class UnitWordsIn(BaseModel):
 
 @app.get("/api/units")
 def api_list_units(request: Request):
+    print(f"🔍 [DEBUG] GET /api/units - No external calls should be made")
     user = current_user(request)
     uid = user["id"] if user else None
-    return db.list_units(user_id=uid)
+    result = db.list_units(user_id=uid)
+    print(f"✅ [DEBUG] GET /api/units returned {len(result)} units from database only")
+    return result
 
 
 @app.post("/api/units")
@@ -1500,6 +1425,8 @@ def api_reading(body: ReadingIn):
     # Try enrichment service first if enabled (with short timeout)
     if ENRICHMENT_ENABLED:
         try:
+            print(f"📡 [ENRICHMENT] Calling enrichment service: {ENRICHMENT_ENDPOINT}/reading")
+            print(f"✅ [ENRICHMENT] This call is for READING generation, NOT for units")
             resp = requests.post(
                 f"{ENRICHMENT_ENDPOINT}/reading",
                 json={"level": level, "words": body.words},

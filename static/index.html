@@ -863,45 +863,11 @@ function aiLoadingHTML(msg) {
 const careerStr = () => (PROFILE?.career || 'General').trim();
 async function loadDeck() { DECK = await api('/api/words?career=' + encodeURIComponent(careerStr())); }
 function sentencesFor(w) { const c = careerStr(); const cs = w.sentences.filter(s => s.career === c); return cs.length ? cs : w.sentences; }
-// ---- career sentence generation (parallel + non-blocking) ----
-// Each word that needs career sentences gets generated in the background; we
-// only ever *wait* for the specific word about to be shown, so the user starts
-// studying word 1 while words 2..N generate in parallel.
-const genPromises = {};   // word id -> in-flight generation promise
-let outOfTokens = false;  // set once a generation is rejected for lack of tokens
-function generateForWord(w) {
-  return jreq('/api/words/' + w.id + '/generate', 'POST',
-              { career: careerStr(), level: PROFILE?.level || 'B1', n: 3 })
-    .then(res => {
-      if (res.sentences && res.sentences.length) w.sentences = w.sentences.concat(res.sentences);
-      if (!res.cached || (res.sentences && res.sentences.length)) w.has_career_sentences = true;
-      w.paid = true;   // charged once now — don't request this word again
-      if (res.tokens != null && ME.user) { ME.user.tokens = res.tokens; updateTokenChip(); }
-    })
-    .catch(err => {
-      // 402 = out of tokens: stop trying and show generic sentences as fallback.
-      if (err && err.status === 402) { outOfTokens = true; if (ME.user) { ME.user.tokens = 0; updateTokenChip(); } }
-      /* any other failure (e.g. AI returned nothing): leave it unpaid so it can
-         be retried later — but only when actually needed, see startCareerGeneration */
-    });
-}
-function startCareerGeneration(words) {
-  // Only call the API when there's a reason to:
-  //  • word has no career sentences yet  → needs AI generation, OR
-  //  • word is cached but this user hasn't paid → charge-only (no AI call).
-  // Words that are already cached AND paid by this user are skipped entirely, so
-  // refreshing the page does NOT re-hit the (paid) API for them.
-  if (!ME.ai_enabled || outOfTokens) return;
-  for (const w of words) {
-    if (genPromises[w.id]) continue;                 // already requested this session
-    if (w.has_career_sentences && w.paid) continue;  // cached + paid → nothing to do
-    genPromises[w.id] = generateForWord(w);
-  }
-}
-async function ensureWordReady(w) { if (genPromises[w.id]) await genPromises[w.id]; }
+// ---- sentences from database only (no generation) ----
+// All sentences come from the database; no AI generation
+async function ensureWordReady(w) { /* no-op: sentences always from database */ }
 async function ensureAllReady(words) {
-  startCareerGeneration(words);
-  await Promise.all(words.map(w => genPromises[w.id]).filter(Boolean));
+  // no-op: no background generation needed
 }
 function allCategories() { return [...new Set(DECK.map(w => w.topic))]; }
 function careerLabel() { const c = (PROFILE?.career || '').trim(); return CAREERS[c]?.label || c || 'All topics'; }
@@ -913,10 +879,8 @@ function careerCats() {
   return allCategories(); // a custom (typed) career studies the full deck
 }
 function studyDeck() {
-  // Words are scoped to the learner's CEFR level; career only flavors the sentences.
-  // A word with no sentences yet is still studyable when AI can generate them.
   const lvl = (PROFILE?.level || 'B1');
-  return DECK.filter(w => w.level === lvl && (w.sentences.length || ME.ai_enabled))
+  return DECK.filter(w => w.level === lvl && w.sentences.length)
              .sort((a, b) => a.id - b.id);
 }
 const goal = () => 10;
@@ -1035,7 +999,10 @@ function renderTopbar() {
   const deck = studyDeck(), done = learnedSet();
   const learnedCount = deck.filter(w => done.has(w.id)).length;
   const units = progressUnits();
-  const currentUnit = units.find(u => !u.complete) || units[units.length - 1];
+  // Show the currently studied unit if set, otherwise show next incomplete or last
+  const currentUnit = currentUnitId
+    ? units.find(u => u.id === currentUnitId)
+    : (units.find(u => !u.complete) || units[units.length - 1]);
   const unitLabel = currentUnit
     ? (currentUnit.title ? escapeHtml(currentUnit.title) : `Unit ${units.indexOf(currentUnit) + 1}`)
     : null;
@@ -1090,21 +1057,8 @@ async function beginLesson(words, startIdx = 0) {
   switchView('learn');
   renderTopbar();
   if (!lesson.length) { renderLearn(); return; }
-  startCareerGeneration(lesson);   // request ALL words in parallel, in the background
   const first = lesson[studyIdx];
-  if (genPromises[first.id]) {      // wait only for the word we're about to show
-    if (!first.has_career_sentences)  // only show the spinner when truly generating
-      $('#learn-area').innerHTML = aiLoadingHTML(`Preparing your example for <b>${escapeHtml(careerStr())}</b>…`);
-    await ensureWordReady(first);
-  }
-  // If that word still has no usable example (AI off/failed/out of tokens), say so.
-  if (!sentencesFor(first).length) {
-    $('#learn-area').innerHTML = `<div class="empty"><div class="big">⚠️</div>
-      Couldn't prepare examples for <b>${escapeHtml(careerStr())}</b> right now${ME.ai_enabled ? (outOfTokens ? ' — you may be out of tokens.' : '.') : ' — AI generation is off.'}
-      <p style="margin-top:10px"><button class="primary" id="lesson-retry">Try again</button></p></div>`;
-    $('#lesson-retry').onclick = () => { outOfTokens = false; lesson.forEach(w => delete genPromises[w.id]); beginLesson(words, studyIdx); };
-    return;
-  }
+  await ensureWordReady(first);
   studySentence = pickStudySentence(studyIdx);
   saveLessonState();
   renderLearn();
@@ -1269,15 +1223,10 @@ function buildQuestion(word, wordPool) {
   return { word, prompt: correctSent.sentence_en, options };
 }
 async function startQuiz(words, mode) {
-  // Make sure every word in the quiz has career sentences (covers mistake review,
-  // where generation may not have been kicked off yet). Usually already done.
-  if (ME.ai_enabled && words.some(w => !w.has_career_sentences && !genPromises[w.id])) {
-    $('#learn-area').innerHTML = aiLoadingHTML('Preparing your quiz…');
-  }
   await ensureAllReady(words);
   const items = words.map(w => buildQuestion(w, words)).filter(Boolean);
   if (!items.length) {
-    $('#learn-area').innerHTML = `<div class="empty"><div class="big">⚠️</div><p>Not enough sentences yet to run a quiz. Keep studying and try again once more words have examples.</p></div>`;
+    $('#learn-area').innerHTML = `<div class="empty"><div class="big">⚠️</div><p>Not enough sentences in database for a quiz. Add more words with sentences.</p></div>`;
     phase = 'study'; return;
   }
   quiz = { items, idx: 0, correct: 0, mode, answered: false, answers: {} };
@@ -1927,11 +1876,21 @@ $('#inbox-read-all').onclick = async () => {
 
 // -------- progress / journey map --------
 let UNITS = [];
-async function loadUnits() { try { UNITS = await api('/api/units'); } catch { UNITS = []; } }
+async function loadUnits() {
+  try {
+    console.log('📡 [DEBUG] loadUnits() - Fetching units from backend /api/units endpoint');
+    UNITS = await api('/api/units');
+    console.log(`✅ [DEBUG] loadUnits() - Received ${UNITS.length} units from database (NO external endpoint involved in this call)`);
+  } catch {
+    UNITS = [];
+  }
+}
 function progressUnits() {
+  console.log('🔍 [DEBUG] progressUnits() - Reading units from UNITS array (database cache)');
   const lvl = PROFILE?.level || 'B1';
   const done = learnedSet();
   const stored = (UNITS || []).filter(u => (u.level || 'B1') === lvl);
+  console.log(`✅ [DEBUG] progressUnits() - Found ${stored.length} units from database, NO external endpoint calls`);
 
   // Fetch units from database (persistent source of truth)
   const byId = Object.fromEntries(DECK.map(w => [w.id, w]));
